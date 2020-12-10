@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-PIT_BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+if [[ -z "${PIT_BASEDIR}" ]]; then
+    PIT_BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+fi
+
 IDF_TOOLS_PATH="${PIT_BASEDIR}/esp/tools"
 
 echo "export PIT_BASEDIR=${PIT_BASEDIR}" >> $HOME/.bashrc 
@@ -28,7 +31,25 @@ cd components
 git clone -b idf-release/v4.0 https://github.com/espressif/arduino-esp32.git arduino 
 cd arduino 
 git submodule update --init --recursive 
-cd $PIT_BASEDIR/PIT
+
+cd libraries
+
+git clone https://github.com/johnrickman/LiquidCrystal_I2C.git
+git clone https://github.com/milesburton/Arduino-Temperature-Control-Library.git
+git clone https://github.com/PaulStoffregen/OneWire.git
+
+cd OneWire
+
+git checkout 85392737dc549ccfaf91538d0222c335d3dadd3f
+
+sed -i '14,17d' ./OneWire.h
+sed -i '12d' ./OneWire.h
+
+cd $PIT_BASEDIR
+
+python library_prep.py
+
+cd PIT
 idf.py menuconfig
 
 bash

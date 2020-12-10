@@ -1,26 +1,4 @@
-#include <TimerOne.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <OneWire.h>
-#include <EEPROM.h>
-#include <DallasTemperature.h>
-#include <MsTimer2.h>
-//#include <Poly.h>
-#include <CustomChars.h>
-
-#define BUTTON_PIN 2
-#define POT_PIN A1
-#define RELAY_PIN 4
-#define NUM_POT_AVG_ELEMENTS 32
-#define MAX_POT_VALUE 1024
-
-#define SHORT_PRESS_DURATION 100
-#define LONG_PRESS_DURATION 1000
-#define NUISANCE_PRESS_DURATION 10000
-
-#define BUTTON_READ_BLOCK_DURATION 1000/30
-
-#define BRINGUP_CODE 0xCFB3
+#include "PIT.h"
 
 const uint64_t seconds_in_day = 86400;
 const uint64_t seconds_in_hour = 3600;
@@ -39,35 +17,35 @@ OneWire oneWire(10);
 DallasTemperature sensors(&oneWire);
 DeviceAddress tempDeviceAddress;
 
-volatile uint8_t lrcoef_is_valid = false;
+uint8_t lrcoef_is_valid = false;
 
 unsigned long lastTempRequest = 0;
 const uint16_t temp_integration_delay = 750;
 
-volatile uint64_t temp_times[60];
+uint64_t temp_times[60];
 
-volatile float temperatures[60];
-volatile int8_t temperatures_index = 0;
+float temperatures[60];
+int8_t temperatures_index = 0;
 
 float lrCoef[2] = {0, 0};
 
 ////
 
-volatile uint32_t press_detection_time = 0;
-volatile uint8_t button_press_detected = false;
+uint32_t press_detection_time = 0;
+uint8_t button_press_detected = false;
 
-volatile uint64_t system_uptime = 0;
+uint64_t system_uptime = 0;
 
-volatile uint8_t run_mode = 0;
+uint8_t run_mode = 0;
 
-volatile uint64_t uptime_at_cycle_start = 0;
-volatile uint64_t uptime_at_pause = 0;
+uint64_t uptime_at_cycle_start = 0;
+uint64_t uptime_at_pause = 0;
 
 uint32_t button_block_timer = 0;
 
-volatile uint8_t en_temp = false;
+uint8_t en_temp = false;
 
-volatile uint8_t force_extern = 0;
+uint8_t force_extern = 0;
 
 const char stop_pause_str[] PROGMEM = " Stop     Pause ";
 const char stop_run_str[] PROGMEM = " Stop       Run ";
@@ -77,7 +55,7 @@ const char match_less_set_str[] PROGMEM = "Match t < set   ";
 
 const char blank_line_str[] PROGMEM = "                ";
 
-volatile struct config
+struct config
 {
     uint64_t pulse_width = 60;
     uint64_t period = 120;
@@ -87,6 +65,11 @@ volatile struct config
     uint8_t cmp_options = 0; //0 is less than, 1 is greater than
     uint8_t tmp_ctl_is_blocking = false;
 } active_config;
+
+void app_main()
+{
+    initArduino();
+}
 
 void setup()
 {
