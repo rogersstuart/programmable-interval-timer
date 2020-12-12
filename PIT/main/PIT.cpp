@@ -1,21 +1,15 @@
 #include "PIT.h"
 
-const uint64_t seconds_in_day = 86400;
-const uint64_t seconds_in_hour = 3600;
-const uint64_t seconds_in_minute = 60; 
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+OneWire oneWire(10);
+DallasTemperature sensors(&oneWire);
+DeviceAddress tempDeviceAddress;
 
+////
 uint16_t pot_running_avg_elements[NUM_POT_AVG_ELEMENTS];
 uint8_t pot_running_avg_elements_index = 0;
 
 volatile uint16_t current_pot_value;
-
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
-
-OneWire oneWire(10);
-
-////
-DallasTemperature sensors(&oneWire);
-DeviceAddress tempDeviceAddress;
 
 uint8_t lrcoef_is_valid = false;
 
@@ -434,32 +428,7 @@ float ybar;
 float xybar;
 float xsqbar;
 
-void simpLinReg(float* x, float* y, float* lrCoef, uint8_t num){
-    // pass x and y arrays (pointers), lrCoef pointer, and n.  The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1].  n is length of the x and y arrays.
 
-    // initialize variables
-    xbar=0.0;
-    ybar=0.0;
-    xybar=0.0;
-    xsqbar=0.0;
-    
-    // calculations required for linear regression
-    for (int i=0; i<num; i++)
-    {
-        xbar=xbar+x[i];
-        ybar=ybar+y[i];
-        xybar=xybar+x[i]*y[i];
-        xsqbar=xsqbar+x[i]*x[i];
-    }
-    xbar/=num;
-    ybar/=num;
-    xybar/=num;
-    xsqbar/=num;
-    
-    // simple linear regression algorithm
-    lrCoef[0]=(xybar-xbar*ybar)/(xsqbar-xbar*xbar);
-    lrCoef[1]= (ybar-lrCoef[0]*xbar);
-}
 
 uint64_t getSystemUptime()
 {
@@ -690,25 +659,6 @@ void setMode(uint8_t new_mode)
         run_mode = new_mode;
         uptime_at_pause = getSystemUptime();
         return;  
-    }
-}
- 
-
-uint16_t getscaledPotValue(uint16_t max)
-{
-    return (uint16_t)(((float)current_pot_value/MAX_POT_VALUE)*max);
-}
-
-void updatePotReading()
-{
-    pot_running_avg_elements[pot_running_avg_elements_index] = analogRead(POT_PIN);
-    if(++pot_running_avg_elements_index == NUM_POT_AVG_ELEMENTS)
-    {
-        uint64_t sum = 0;
-        for(uint8_t i = 0; i < NUM_POT_AVG_ELEMENTS; i++)
-            sum += pot_running_avg_elements[i];
-        current_pot_value = sum/NUM_POT_AVG_ELEMENTS;
-        pot_running_avg_elements_index = 0;
     }
 }
 

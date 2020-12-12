@@ -1,0 +1,29 @@
+
+#include "LinearRegression.h"
+
+void linearRegression(float* x, float* y, float* lrCoef, uint8_t num){
+    // pass x and y arrays (pointers), lrCoef pointer, and n.  The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1].  n is length of the x and y arrays.
+
+    // initialize variables
+    xbar=0.0;
+    ybar=0.0;
+    xybar=0.0;
+    xsqbar=0.0;
+    
+    // calculations required for linear regression
+    for (int i=0; i<num; i++)
+    {
+        xbar=xbar+x[i];
+        ybar=ybar+y[i];
+        xybar=xybar+x[i]*y[i];
+        xsqbar=xsqbar+x[i]*x[i];
+    }
+    xbar/=num;
+    ybar/=num;
+    xybar/=num;
+    xsqbar/=num;
+    
+    // simple linear regression algorithm
+    lrCoef[0]=(xybar-xbar*ybar)/(xsqbar-xbar*xbar);
+    lrCoef[1]= (ybar-lrCoef[0]*xbar);
+}
