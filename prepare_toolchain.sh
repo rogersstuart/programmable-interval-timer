@@ -18,7 +18,6 @@ mkdir ./esp
 cd ./esp
 git clone -b release/v4.0 --recursive https://github.com/espressif/esp-idf.git
 
-
 cd ./esp-idf
 chmod 775 ./install.sh
 ./install.sh
@@ -38,13 +37,6 @@ cd libraries
 git clone https://github.com/johnrickman/LiquidCrystal_I2C.git
 git clone https://github.com/milesburton/Arduino-Temperature-Control-Library.git
 git clone https://github.com/PaulStoffregen/OneWire.git
-
-#cd OneWire
-
-#git checkout 85392737dc549ccfaf91538d0222c335d3dadd3f
-
-#sed -i '14,17d' ./OneWire.h
-#sed -i '12d' ./OneWire.h
 
 cd $PIT_BASEDIR
 

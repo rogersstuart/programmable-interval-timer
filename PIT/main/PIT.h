@@ -3,23 +3,26 @@
 
 #define ARDUINO 100
 
+#define INCLUDE_vTaskDelete 1
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_system.h>
+
 //#include <TimerOne.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <OneWire.h>
 #include <EEPROM.h>
-#include <DallasTemperature.h>
-//#include <MsTimer2.h>
 //#include <Poly.h>
-#include "CustomChars.h"
 #include <Arduino.h>
+#include "DisplayManager.h"
+
 //
 
+#define SERIAL_RATE 250000U
+
 #define BUTTON_PIN 2
-#define POT_PIN A1
 #define RELAY_PIN 4
-#define NUM_POT_AVG_ELEMENTS 32
-#define MAX_POT_VALUE 1024
 
 #define SHORT_PRESS_DURATION 100
 #define LONG_PRESS_DURATION 1000
@@ -29,18 +32,9 @@
 
 #define BRINGUP_CODE 0xCFB3
 
-
 #define SECONDS_IN_DAY 86400ULL
 #define SECONDS_IN_HOUR 3600ULL
 #define SECONDS_IN_MINUTE 60ULL
-
-const char stop_pause_str[] PROGMEM = " Stop     Pause ";
-const char stop_run_str[] PROGMEM = " Stop       Run ";
-const char run_str[] PROGMEM = "       Run      ";
-const char yes_no_str[] PROGMEM = "  Yes       No  ";
-const char match_less_set_str[] PROGMEM = "Match t < set   ";
-
-const char blank_line_str[] PROGMEM = "                ";
 
 struct config
 {
@@ -52,5 +46,8 @@ struct config
     uint8_t cmp_options = 0; //0 is less than, 1 is greater than
     uint8_t tmp_ctl_is_blocking = false;
 } active_config;
+
+OneWire oneWire(10);
+DisplayManger display;
 
 #endif //PIT_H

@@ -18,6 +18,13 @@
 
 class PolynomialRegression
 {
+    private:
+        long n = 0;
+        float m[px][px + 1];
+        float mpc[rs];
+        float mpcClone[rs];
+        float mClone[px][px+1];
+        LinkedList<float> vals = LinkedList<float>();
     public:
         void clear_p();
         void addPoint( float x,  float y);

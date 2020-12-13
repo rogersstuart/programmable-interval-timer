@@ -1,17 +1,5 @@
 #include <Poly.h>
 
-long n = 0;
-
-float m[px][px + 1];
-
-float mpc[rs];
-
-float mpcClone[rs];
-
-float mClone[px][px+1];
-
-    LinkedList<float> vals = LinkedList<float>();
-
 /**
  * Add a point to the set of points that the polynomial must be fit to
  * 
@@ -19,9 +7,8 @@ float mClone[px][px+1];
  *            The x coordinate of the point
  * @param y
  *            The y coordinate of the point
+*/
 
-
-    */
 float fastpow (float x, int m)
 {
     return pow(x, m);
@@ -245,9 +232,7 @@ void gj_echelonize(float A[px][px + 1])
             i++;
         }
         j++;
-    }
-
-    
+    }  
 }
 
 /**
@@ -296,11 +281,6 @@ LinkedList<float>* getBestFit()
 
     return &vals;
 }
-
-
-
-
-
 
 /*
 float getY(float x)
@@ -353,6 +333,3 @@ float getY(float x, float * nomial_vals)
     return ret;
     */
 }
-
-
-

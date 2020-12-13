@@ -1,30 +1,5 @@
 #include "PIT.h"
 
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
-OneWire oneWire(10);
-DallasTemperature sensors(&oneWire);
-DeviceAddress tempDeviceAddress;
-
-////
-uint16_t pot_running_avg_elements[NUM_POT_AVG_ELEMENTS];
-uint8_t pot_running_avg_elements_index = 0;
-
-volatile uint16_t current_pot_value;
-
-uint8_t lrcoef_is_valid = false;
-
-unsigned long lastTempRequest = 0;
-const uint16_t temp_integration_delay = 750;
-
-uint64_t temp_times[60];
-
-float temperatures[60];
-int8_t temperatures_index = 0;
-
-float lrCoef[2] = {0, 0};
-
-////
-
 uint32_t press_detection_time = 0;
 uint8_t button_press_detected = false;
 
@@ -41,24 +16,7 @@ uint8_t en_temp = false;
 
 uint8_t force_extern = 0;
 
-const char stop_pause_str[] PROGMEM = " Stop     Pause ";
-const char stop_run_str[] PROGMEM = " Stop       Run ";
-const char run_str[] PROGMEM = "       Run      ";
-const char yes_no_str[] PROGMEM = "  Yes       No  ";
-const char match_less_set_str[] PROGMEM = "Match t < set   ";
-
-const char blank_line_str[] PROGMEM = "                ";
-
-struct config
-{
-    uint64_t pulse_width = 60;
-    uint64_t period = 120;
-    uint8_t run_on_power_up = true;
-    uint8_t enable_temperature_control = false;
-    float setpoint_0 = 78.0f;
-    uint8_t cmp_options = 0; //0 is less than, 1 is greater than
-    uint8_t tmp_ctl_is_blocking = false;
-} active_config;
+_lock_t oneWireLock;
 
 void app_main()
 {
@@ -67,7 +25,7 @@ void app_main()
 
 void setup()
 {
-    Serial.begin(250000);
+    Serial.begin(SERIAL_RATE);
     
     pinMode(BUTTON_PIN, INPUT_PULLUP);
 
@@ -75,44 +33,25 @@ void setup()
     pinMode(A2, INPUT_PULLUP);
     pinMode(A3, INPUT_PULLUP);
     
-    lcd.begin (16,2);
-    lcd.backlight();
-    lcd.home ();// go home
+    display::init();
+    display::show_boot_message();
 
-    lcd.print(F("PIT 1.1.20"));
-    lcd.setCursor(0, 1);
-    lcd.print(F("MST LLC 2016"));
+    
 
-    delay(4000);
-
-    lcd.createChar(0, playChar);
-    lcd.createChar(1, pauseChar);
-    lcd.createChar(2, stopChar);
-    lcd.createChar(3, playTempEn);
-    lcd.createChar(4, runTmpTmr_norm);
-    lcd.createChar(5, tlvl);
-    lcd.createChar(6, tup);
-    lcd.createChar(7, tdown);
+    
 
     readConfig();
 
     attachInterrupt(digitalPinToInterrupt(2), buttonPressDetection, FALLING);
 
-    Timer1.initialize(1000000/60/32);
-    
     delay(10);
     
     button_press_detected = false;
-
-    current_pot_value = analogRead(POT_PIN);
 
     if(active_config.run_on_power_up)
         setMode(2);
     else
         setMode(0);
-    
-    MsTimer2::set(10, processTimer);
-    MsTimer2::start();
 }
 
 void loop()
@@ -141,87 +80,7 @@ void processSerial()
         force_extern = 0;
 }
 
-void manageTemperatureSensor()
-{
-    if(en_temp)
-    {
-        if(sensors.isConnected(tempDeviceAddress))
-        {
-            if ((uint32_t)((long)millis() - lastTempRequest) >= temp_integration_delay) // waited long enough??
-            {
-                lrcoef_is_valid = false;
-                
-                temperatures[temperatures_index] = sensors.getTempFByIndex(0);
-                temp_times[temperatures_index] = getSystemUptime();
 
-                sensors.requestTemperatures();
-                lastTempRequest = millis();
-
-                if(++temperatures_index > 59)
-                temperatures_index = 0;
-
-                getTemperatureTrend();
-
-                lrcoef_is_valid = true;
-            }
-        }
-        else
-        {
-            en_temp = false;
-            lrcoef_is_valid = false;
-        }
-    }
-    else
-    {
-        sensors.begin();
-
-        if(sensors.getDeviceCount() > 0)
-        {
-            lcd.setCursor(0, 0);
-            lcd.print(F("Sample Fill"));
-            LCDPrint_P(blank_line_str);
-            lcd.setCursor(0, 1);
-            LCDPrint_P(blank_line_str);
-            
-            
-            sensors.getAddress(tempDeviceAddress, 0);
-            sensors.setResolution(tempDeviceAddress, 12);
-
-            sensors.setWaitForConversion(false);
-
-            for(int iqw = 0; iqw < 60; iqw++)
-            {
-                if(!sensors.isConnected(tempDeviceAddress))
-                    return;
-                
-                lcd.setCursor(0, 1);
-                lcd.print(iqw+1);
-                lcd.print(F(" of 60"));
-                //LCDPrint_P(blank_line_str);
-
-                sensors.requestTemperatures();
-
-                delay(temp_integration_delay);
-
-                float temperature = sensors.getTempFByIndex(0);
-
-                temperatures[iqw] = temperature;
-                temp_times[iqw] = getSystemUptime();
-            }
-
-            sensors.requestTemperatures();
-            lastTempRequest = millis();
-            
-            temperatures_index = 0;
-
-            getTemperatureTrend();
-            lrcoef_is_valid = true;
-            en_temp = true;
-
-            button_press_detected = false;          
-        }
-    }
-}
 
 void LCDPrint_P(const char str[])
 {
@@ -362,72 +221,6 @@ float get10sTemperatureAvg()
     return average / (float)samples;
 }
 */
-float getLatestTemperature()
-{
-    return temperatures[temperatures_index > 0 ? temperatures_index - 1 : 59];
-}
-
-float getLinRegTemperature(float time) //time in seconds
-{
-    uint64_t min_time = temp_times[temperatures_index];
-    uint64_t max_time = temp_times[temperatures_index > 0 ? temperatures_index - 1 : 59];
-
-    float span = (float)(max_time-min_time)/1000.0;
-
-    float time_offset = (getSystemUptime() - max_time) / 1000.0;
-        
-    return (lrCoef[0]*(span+time_offset+time))+lrCoef[1];
-}
-
-void getTemperatureTrend()
-{
-    if(lrcoef_is_valid)
-        return;
-    
-    //float temp_cpy[60];
-    //memcpy((uint8_t*)&temp_cpy, (uint8_t*)&temperatures, sizeof(float)*60);
-    
-    lrCoef[0] = 0;
-    lrCoef[1] = 0;
-
-    uint64_t min_time = temp_times[0];
-    //uint8_t tcheck = 0;
-
-    for(uint8_t i = 1; i < 60; i++)
-    {
-        if(temp_times[i] < min_time)
-        min_time = temp_times[i];
-
-       //if(temperatures[0] == temperatures[i])
-       //tcheck++;
-    }
-
-   // if(tcheck < 29)
-   // {
-    float sample_times[60];
-
-    for(int i = 0; i < 60; i++)
-        sample_times[i] = (float)(temp_times[i] - min_time)/1000.0 ;
-    //    sample_times[i] = ((float)i *(750.0 / (1 << (12 - resolution))))/1000;
-        //sample_times[start_index+i > 59 ? 59-(start_index+i) : start_index+i] = ((float)i *(750.0 / (1 << (12 - resolution))))/1000;
-
-    
-       
-    
-    simpLinReg(sample_times, (float*)temperatures, (float*)lrCoef, 60);
- //   }
-  //  else
-  //  {
-        // lrCoef[0] = 0;
-        // lrCoef[1] = getLatestTemperature();
-   // }
-}
-
-float xbar;
-float ybar;
-float xybar;
-float xsqbar;
-
 
 
 uint64_t getSystemUptime()
@@ -510,35 +303,7 @@ void processTimer()
             pinMode(4, INPUT);    
 }
 
-uint8_t tcheck()
-{
-    if(en_temp && active_config.enable_temperature_control)
-    {
-        if(!lrcoef_is_valid)
-            return t_chk_res; //just skip this round
 
-        //float temperature = lrt;
-        if(active_config.cmp_options == 0) //less than
-        {
-          if(getLinRegTemperature(0) < active_config.setpoint_0)
-            return true;
-          else
-            return false; 
-        }
-        else
-            if(active_config.cmp_options == 1)
-            {
-                if(getLinRegTemperature(0) > active_config.setpoint_0)
-                return true;
-                else
-                return false;
-            }
-            else
-                return false;
-    }
-    else
-        return false;
-}
 
 void idleDisplay()
 {
@@ -902,38 +667,7 @@ uint8_t* timeBreakdown(uint64_t * seconds)
 }
 
 
-String generateTimeString(uint64_t total_seconds, uint8_t en_days, uint8_t zero_pad, uint8_t force_full_display)
-{
-    uint8_t * tbreak = timeBreakdown(&total_seconds);
 
-    String str = "";
-
-    if(tbreak[0] > 0 && en_days)
-        str += String(tbreak[0]) + ":";
-
-    if(tbreak[1] > 0 || (tbreak[0] > 0 && en_days) || force_full_display)
-    {
-        if((zero_pad || force_full_display) && tbreak[1] < 10)
-            str += "0";
-
-        str +=  String(tbreak[1]) + ":";
-    }
-
-    if(tbreak[2] > 0 || (tbreak[1] > 0 || (tbreak[0] > 0 && en_days)) || force_full_display)
-    {
-        if((zero_pad || force_full_display) && tbreak[2] < 10)
-            str += "0";
-
-        str +=  String(tbreak[2]) + ":";
-    }
-
-    if((zero_pad || force_full_display) && tbreak[3] < 10)
-        str += "0";
-    
-    str +=  String(tbreak[3]);
-
-    return str;   
-}
 
 
 void selectOptionMenuItem1()
