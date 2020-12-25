@@ -5,7 +5,6 @@
  *  Author: Stuart
  */ 
 
-
 #ifndef CUSTOMCHARS_H_
 #define CUSTOMCHARS_H_
 
@@ -107,7 +106,5 @@ PROGMEM const char stopChar[8] = {
     0b00000,
     0b00000
 };
-
-
 
 #endif /* CUSTOMCHARS_H_ */

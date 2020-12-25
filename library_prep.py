@@ -2,12 +2,16 @@ import os, sys
 
 base_path = os.path.realpath('.')
 
-srcs_strs = ("LiquidCrystal_I2C/LiquidCrystal_I2C.cpp",
-             "OneWire/OneWire.cpp",
-             "Arduino-Temperature-Control-Library/DallasTemperature.cpp")
+srcs_strs =  ("LiquidCrystal_I2C/LiquidCrystal_I2C.cpp",
+              "OneWire/OneWire.cpp",
+              "Arduino-Temperature-Control-Library/DallasTemperature.cpp",
+              "ai-esp32-rotary-encoder/src/AiEsp32RotaryEncoder.cpp",
+              "LinkedList/LinkedList.h")
 incld_strs = ("LiquidCrystal_I2C",
               "OneWire",
-              "Arduino-Temperature-Control-Library")
+              "Arduino-Temperature-Control-Library",
+              "ai-esp32-rotary-encoder",
+              "LinkedList")
 
 with open(os.path.join(base_path, "PIT", "components", "arduino", "CMakeLists.txt"), 'r') as f:
     config = f.read()
