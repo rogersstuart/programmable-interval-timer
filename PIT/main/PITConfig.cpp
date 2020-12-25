@@ -1,12 +1,22 @@
+#include "PIT.h"
+#include "PITConfig.h"
+#include "EEPROM.h"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "PIT.h"
-#include "PITConfig.h"
+namespace{
+
+    static SemaphoreHandle_t cfg_lock;
+}
 
 namespace PIT{
 
     Persistance::Persistance(){
+
+        vSemaphoreCreateBinary(cfg_lock)
+        xSemaphoreGive(cfg_lock);
+
         readConfig();
     }
 
@@ -16,7 +26,8 @@ namespace PIT{
      * @param none
      * @return none
     */
-    static void Persistance::readConfig(){
+    void Persistance::readConfig(){
+
         uint16_t bringup_match = (uint16_t)EEPROM.read(0) << 8 | EEPROM.read(1);
         char * bp = (char*)&config;
         if(bringup_match == BRINGUP_CODE) //check to see if the codes match. if no then the NV memory needs to be initialized
@@ -34,7 +45,8 @@ namespace PIT{
      * @param none
      * @return none
     */
-    static void Persistance::writeConfig(){
+    void Persistance::writeConfig(){
+
         char * bp = (char*)&config;
         for(uint8_t i = 0; i < sizeof(config); i++)   
             EEPROM.write(i+2, (uint8_t)bp[i]);
@@ -47,18 +59,10 @@ namespace PIT{
         }   
     }
 
-    /**
-     * Reterive a copy of the configuration.
-     * 
-     * @param none
-     * @return a copy of the active configuration
-     */
-    static PITConfig Persistance::getConfig(){        
-        lock(cfg_lock){
-            PITConfig p;
-            p = config;
-            return p;
-        }
+    Persistance& Persistance::getInstance(){
+
+        static Persistance persistance;
+        return persistance;
     }
 
     /**
@@ -67,11 +71,24 @@ namespace PIT{
      * @param config The configuration to store
      * @return none
      */
-    static void Persistance::setConfig(PITConfig config){
-        lock(cfg_lock){
-            Persistance::config = config;
-            writeConfig(); 
-        }
+    void Persistance::setConfig(PITConfig config){
+
+        auto instance = getInstance();
+        
+        xSemaphoreTake(cfg_lock, 0xFFFF);
+        instance.config = config;
+        instance.writeConfig(); 
+        xSemaphoreGive(cfg_lock);
     }
 
+    Persistance::PITConfig Persistance::getConfig(){
+
+        auto instance = getInstance();
+        
+        xSemaphoreTake(cfg_lock, 0xFFFF);
+        auto config = instance.config;
+        xSemaphoreGive(cfg_lock);
+
+        return config;
+    }
 }

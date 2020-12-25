@@ -9,6 +9,9 @@ namespace PIT{
 
     void UI::displayStatusLine(TemperatureSensor * sensor){
 
+        auto display = Display::getInstance();
+        auto lcd = display.checkOut();
+        
         auto config = PITConfig::getConfig();
         
         Display::displayHome(DISABLE_BLINK);

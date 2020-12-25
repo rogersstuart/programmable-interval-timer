@@ -1,11 +1,9 @@
 #ifndef PIT_CONFIG_H
 #define PIT_CONFIG_H
 
-namespace PIT{
+#include <Arduino.h>
 
-    namespace{
-        class lock_t;
-    }
+namespace PIT{
 
     class Persistance final {
         
@@ -26,17 +24,16 @@ namespace PIT{
             static void setConfig(PITConfig config);
 
         private:
-        
+
+            PITConfig config {};
+            bool init_complete;
+
+            void readConfig();
+            void writeConfig();
+            
             Persistance() = default;
 
-            inline static PITConfig config {};
-
-            inline static lock_t cfg_lock;
-            inline static bool init_complete;
-
-            static void readConfig();
-            static void writeConfig();
-
+            static Persistance& getInstance();
     };
 }
 
