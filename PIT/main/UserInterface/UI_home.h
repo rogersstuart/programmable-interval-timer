@@ -1,14 +1,16 @@
-#include <Arduino.h>
+#include "PIT.h"
 #include "Display.h"
 #include "Utilities.h"
 #include "TemperatureSensing.h"
 #include "UI.h"
 #include "Persistance.h"
 
+#include "LiquidCrystal_I2C.h"
+
 namespace PIT{
 
     void UI::displayStatusLine(TemperatureSensing * sensor){
-
+        
         auto display = Display::getInstance();
         auto lcd = display.checkOut();
         auto config = Persistance::getConfig();
@@ -20,15 +22,15 @@ namespace PIT{
     
         String pw_pe = "";
 
-        if(run_mode == 2){
+        if(run_mode == THERMOSTAT_MODE){
 
-            if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && en_temp))
+            if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking)) //if thermostat control is enabled and isn't blocking
                 pw_pe += Utilities.generateTimeString(cycle_difference, true, false, false);
         }
         else
             if(run_mode == 0){
 
-                if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && en_temp))
+                if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking))
                     pw_pe += String("0");
             }
             else
@@ -39,9 +41,7 @@ namespace PIT{
                     pw_pe += Utilities.generateTimeString(cycle_difference, true, false, false);                
                 }
 
-        if(en_temp){
-
-            if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && en_temp)){
+            if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking)){
 
                 pw_pe += " " + String(sensor->getLinRegTemperature(0), 1);
             }
@@ -53,33 +53,34 @@ namespace PIT{
             }
 
             
-            if(config.enable_temperature_control && config.tmp_ctl_is_blocking && en_temp){
+        if(config.enable_temperature_control && config.tmp_ctl_is_blocking){
 
-                float current_t = sensor->getLinRegTemperature(0);
+            //generate blocking temperature control status line
 
-                float t_in_1_m = sensor->getLinRegTemperature(60);
-                
-                float diff = t_in_1_m - current_t;
+            float current_t = sensor->getLinRegTemperature(0);
+            float t_in_1_m = sensor->getLinRegTemperature(60);
+            float diff = t_in_1_m - current_t;
 
-                if(diff < 0.0)
-                    diff *= -1.0;
+            if(diff < 0.0)
+                diff *= -1.0;
 
-                if(diff < 0.025 || (lrCoef[0] == 0.0))
-                    pw_pe += String((char)5);
-                else
-                if(lrCoef[0] > 0.0)
-                    pw_pe += String((char)6);
-                else
-                    pw_pe += String((char)7);
-                
-                pw_pe += diff >= 0.05 ? String(t_in_1_m - current_t, 3) : "0.0";
-            }
+            if(diff < 0.025 || (lrCoef[0] == 0.0))
+                pw_pe += String((char)5);
+            else
+            if(lrCoef[0] > 0.0)
+                pw_pe += String((char)6);
+            else
+                pw_pe += String((char)7);
+            
+            pw_pe += diff >= 0.05 ? String(t_in_1_m - current_t, 3) : "0.0";
         }
 
+        //fill the rest of the length of the string so old characters are covered up
         int str_len = pw_pe.length();
-
         for(int i = 0; i < (16-1-str_len); i++)
             pw_pe += " ";
+
+        //print the status line and mode character
 
         lcd.setCursor(0, 0);
         lcd.print(pw_pe);
@@ -115,11 +116,8 @@ namespace PIT{
         
         lcd.setCursor(0, 1);
         
-        if(config.enable_temperature_control && config.tmp_ctl_is_blocking && en_temp){
+        if(config.enable_temperature_control && config.tmp_ctl_is_blocking){
 
-            if(!lrcoef_is_valid)
-                return;
-            
             lcd.setCursor(0, 1);
             
             float range = config.setpoint_0 - sensor->getLinRegTemperature(0);

@@ -22,6 +22,7 @@ namespace PIT{
         lcd.createChar(7, tdown);
 
         lcd.backlight();
+        
         goHome();// go home
     }
 

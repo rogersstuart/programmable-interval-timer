@@ -3,14 +3,24 @@
 
 namespace PIT{
 
-    class TemperatureSensor;
-    class Display;
+    namespace{
 
+        extern class TemperatureSensor;
+        extern class Display;
+        typedef char RUN_MODE;
+    }
+
+    typedef char PRESS_TYPE;
+
+    extern uint64_t uptime_at_cycle_start;
+    extern uint64_t uptime_at_pause;
+    extern RUN_MODE run_mode;
+    extern bool button_press_detected;
+    extern uint32_t press_detection_time;
+    
     class UI{
 
         private:
-
-
 
         public:
 
@@ -38,6 +48,9 @@ namespace PIT{
 
             //UI_other.cpp
             static void showBootMessage(int delay_ms = 2000);
+
+            //UI_button.cpp
+            static PRESS_TYPE getButtonPress();
     };
 
 }

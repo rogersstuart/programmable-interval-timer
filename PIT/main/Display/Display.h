@@ -1,18 +1,18 @@
 #ifndef DISPLAY_MANAGER_H
 #define DISPLAY_MANAGER_H
 
-#include "PIT.h"
-
-#include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 
 #define ENABLE_BLINK true
 #define DISABLE_BLINK false
 
 namespace PIT{
+
+    namespace{
+
+        extern class SemaphoreHandle_t;
+
+    }
 
     class Display final{
 

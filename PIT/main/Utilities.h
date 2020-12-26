@@ -1,17 +1,21 @@
 #ifndef PIT_UTILITIES_H
 #define PIT_UTILITIES_H
 
-#include <Arduino.h>
-#include <lock.h>
-
 namespace PIT{
+
+    namespace{
+
+        extern class String;
+        typedef unsigned long long uint64_t;
+        typedef unsigned char uint8_t;
+
+    }
 
     class Utilities{
 
         private:
 
             inline static uint64_t system_uptime = 0;
-            inline static _lock_t uptime_access_lock;
 
         public:
 

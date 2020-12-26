@@ -4,6 +4,7 @@
 namespace PIT{
 
     class LinearRegression{
+        
         private:
                 //inline static float lrCoef[2] = {0, 0};
         public:

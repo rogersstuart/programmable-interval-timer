@@ -15,17 +15,17 @@
 #include "Persistance.h"
 
 #include "UserInterface/UI.h"
-
-#include <vector>
-#include <functional>
+#include "TemperatureSensing.h"
 //
 
 namespace PIT{
 
+    extern bool en_temp;
+
+    TemperatureSensing * t_sense;
     ButtonTracker * button;
     
     OneWire oneWire(ONE_WIRE_PIN);
-    _lock_t oneWireLock;
 
     uint32_t press_detection_time = 0;
     uint8_t button_press_detected = false;
@@ -39,34 +39,8 @@ namespace PIT{
 
     uint32_t button_block_timer = 0;
 
-    uint8_t en_temp = false;
-
     uint8_t force_extern = 0;
     uint8_t t_chk_res = false;
-
-    //vector<function<void(PRESS_TYPE)>>
-
-    void buttonCallback(PRESS_TYPE press_type){
-
-        switch(press_type){
-
-            case SHORT_PRESS: return;
-            case LONG_PRESS: return;
-            case NUISANCE_PRESS: return;
-            default:
-        }
-    }
-
-    void processSerial(){
-
-        uint8_t cfg_byte = Serial.read();
-        Serial.write(0b11111010);
-
-        if(cfg_byte & 1)
-            force_extern = cfg_byte & 3;
-        else
-            force_extern = 0;
-    }
 
     /**
      * 
@@ -77,7 +51,7 @@ namespace PIT{
 
             t_chk_res = tcheck();
             
-            uint64_t current_time = getSystemUptime();
+            uint64_t current_time = Utilities::getSystemUptime();
             float cycle_difference = (current_time - uptime_at_cycle_start) / 1000.0;
 
             if(cycle_difference >= active_config.period){
@@ -116,18 +90,50 @@ namespace PIT{
                 pinMode(RELAY_PIN, INPUT);    
     }
 
+    uint8_t tcheck()
+    {
+        if(en_temp && active_config.enable_temperature_control)
+        {
+            if(!lrcoef_is_valid)
+                return t_chk_res; //just skip this round
+
+            if(active_config.cmp_options == 0) //less than
+            {
+            if(getLinRegTemperature(0) < active_config.setpoint_0)
+                return true;
+            else
+                return false; 
+            }
+            else
+                if(active_config.cmp_options == 1)
+                {
+                    if(getLinRegTemperature(0) > active_config.setpoint_0)
+                        return true;
+                    else
+                        return false;
+                }
+                else
+                    return false;
+        }
+        else
+            return false;
+    }
+
     /**
      * Sets the current opperational mode of the timer.
      */
     void setMode(RUN_MODE new_mode)
     {
+        if(new_mode == 2) //if the new run mode is temperature control then start the temperature sensor object
+            t_sense->start();
+
         if(run_mode == new_mode)
             return;
 
         if((run_mode == 0 && new_mode == 2) || (run_mode == 0 && new_mode == 1))
         {
             run_mode = new_mode;
-            uptime_at_cycle_start = getSystemUptime();
+            uptime_at_cycle_start = Utilities::getSystemUptime();
             return;
         }
 
@@ -141,7 +147,7 @@ namespace PIT{
         if(run_mode == 1 && new_mode == 2)
         {
             run_mode = new_mode;
-            uint64_t new_uptime = getSystemUptime();
+            uint64_t new_uptime = Utilities::getSystemUptime();
             uint64_t offset = new_uptime - uptime_at_pause;
             uptime_at_cycle_start += offset;
             return;
@@ -150,26 +156,23 @@ namespace PIT{
         if(run_mode == 2 && new_mode == 1)
         {
             run_mode = new_mode;
-            uptime_at_pause = getSystemUptime();
+            uptime_at_pause = Utilities::getSystemUptime();
             return;  
         }
     }
 
-    void loop()
-    {
-        //refresh system uptime
-        Utilities::getSystemUptime();
+    void Timer_Task(void * pv_param){
+
+        processTimer();
+        vTaskDelay(10);
+    }
+
+    void UI_Task(void * pv_param){
 
         UI::displayStatusLine();
         UI::idleDisplay();
 
-        /*
-        if(Serial.available() >= 2)
-            if(Serial.read() == 0b10101111)
-                processSerial();
-        */
-
-        vTaskDelay(10); //give other tasks a chance to do something
+        vTaskDelay(20); //give other tasks a chance to do something
     }
 
     /**
@@ -196,11 +199,29 @@ namespace PIT{
         else
             setMode(0);
 
-        button = new Button(BUTTON_PIN, [](){buttonCallback();});
-        button->start(); //begin listening for button presses
+        //button = new Button(BUTTON_PIN, [](){buttonCallback();});
+        //button->start(); //begin listening for button presses
 
-        while(true)
-            loop();
+        attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), []{buttonPressDetected();}, FALLING);
+
+        t_sense = new TemperatureSensing(&oneWire);
+
+        //create UI task
+        xTaskCreate([&](){UI_Task();}, "uiTask", 8000, NULL, 1, NULL);
+
+        //create timer task
+        xTaskCreate([&](){Timer_Task();}, "timerTask", 8000, NULL, 1, NULL);
+    }
+
+    /**
+     * Callback from button press interrupt
+     */
+    void buttonPressDetected(){
+
+        button_block_timer = millis();
+        press_detection_time = millis();
+        button_press_detected = true;
+        
     }
 }
 

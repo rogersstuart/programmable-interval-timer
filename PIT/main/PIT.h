@@ -27,7 +27,7 @@
 #define SECONDS_IN_MINUTE 60ULL
 
 #define TIMER_MODE 0
-#define THERMOSTAT_MODE 1
+#define THERMOSTAT_MODE 2
 
 typedef char RUN_MODE;
 

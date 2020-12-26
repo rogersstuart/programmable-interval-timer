@@ -12,9 +12,14 @@
 #include "Display/Display.h"
 #include "Utilities.h"
 
+#include "Persistance.h"
+
 namespace PIT{
 
-    TemperatureSensing::TemperatureSensing(OneWire * one_wire, _lock_t * one_wire_lock)
+    /**
+     * Constructor
+     */
+    TemperatureSensing::TemperatureSensing(OneWire * one_wire)
     {
         this->one_wire = one_wire;
         this->one_wire_lock = one_wire_lock;
@@ -24,6 +29,7 @@ namespace PIT{
     void TemperatureSensing::stop()
     {
         vTaskDelete(task_handle);
+        vSemaphoreDelete(reading_lock);
     }
 
     //destructor
@@ -34,27 +40,58 @@ namespace PIT{
 
     void TemperatureSensing::start()
     {
+        xSemaphoreCreateBinary(reading_lock);
+        xSemaphoreGive(reading_lock);
+        
         xTaskCreate([&](){
+
             while(true)
+            {
+                xSemaphoreTake(reading_lock);
                 manageTemperatureSensor();
+                xSemaphoreGive(reading_lock);
+                
+                vTaskDelay(100); //give other tasks room
+            }
+                
         }, "t_sense_mgr", 8192, NULL, 1, &task_handle);
     }
 
+    /**
+     * Get the latest temperature.
+     * 
+     * @param none
+     * @return the latest temperature
+     */
     float TemperatureSensing::getLatestTemperature(){
 
-        return temperatures[temperatures_index > 0 ? temperatures_index - 1 : 59];
+        xSemaphoreTake(reading_lock, 0xFFFF);
+        auto to_ret = temperatures[t_head_index > 0 ? t_head_index - 1 : 59];
+        xSemaphoreGive(reading_lock);
+
+        return to_ret;
     }
 
+    /**
+     * Get the estimated temperature at a point in time using a linear regression
+     * 
+     * @param time The time to calculate the temperature at.
+     * @return The temperature at the specified time
+     */
     float TemperatureSensing::getLinRegTemperature(float time){ //time in seconds
     
-        uint64_t min_time = temp_times[temperatures_index];
-        uint64_t max_time = temp_times[temperatures_index > 0 ? temperatures_index - 1 : 59];
+        xSemaphoreTake(reading_lock, 0xFFFF);
+        
+        uint64_t min_time = temp_times[t_head_index];
+        uint64_t max_time = temp_times[t_head_index > 0 ? t_head_index - 1 : 59];
 
         float span = (float)(max_time-min_time)/1000.0;
-
         float time_offset = (Utilities::getSystemUptime() - max_time) / 1000.0;
+        auto ret_val = (lrCoef[0]*(span+time_offset+time))+lrCoef[1];
+
+        xSemaphoreGive(reading_lock);
             
-        return (lrCoef[0]*(span+time_offset+time))+lrCoef[1];
+        return ret_val;
     }
 
     /**
@@ -67,6 +104,8 @@ namespace PIT{
 
         //it works against my organization but since "sample fill" has more to do with temperature sensing and less to do with UI
         //for now the UI related functions will stay here.
+
+        //todo: Add a display task.
         
         auto display = Display::getInstance();
         auto lcd = display.checkOut();
@@ -78,14 +117,14 @@ namespace PIT{
         display.LCDPrint_P(Display::blank_line_str);
 
         //prepare the sensor(s) for reading        
-        sensors->getAddress(tempDeviceAddress, 0);
-        sensors->setResolution(tempDeviceAddress, 12);
+        sensors->getAddress(sensor_address, 0);
+        sensors->setResolution(sensor_address, 12);
         sensors->setWaitForConversion(false);
 
         //collect samples and fill the buffer
-        for(int iqw = 0; iqw < 60; iqw++)
-        {
-            if(!sensors->isConnected(tempDeviceAddress)) //if the process fails then break out an reattempt
+        for(int iqw = 0; iqw < 60; iqw++){
+
+            if(!sensors->isConnected(sensor_address)) //if the process fails then break out and reattempt
                 return;
             
             lcd.setCursor(0, 1);
@@ -96,117 +135,93 @@ namespace PIT{
 
             delay(TEMP_INTEGRATION_DELAY);
 
-            float temperature = sensors->getTempFByIndex(0);
+            float temperature = sensors->getTempF(sensor_address);
 
             temperatures[iqw] = temperature;
             temp_times[iqw] = getSystemUptime();
         }
 
-        sensors->requestTemperatures();
+        sensors->requestTemperatures(); //prepare for the next reading
         lastTempRequest = millis();
         
-        temperatures_index = 0;
+        t_head_index = 0; //the buffer is full so set the head pointer to the beginning
 
         getTemperatureTrend();
-        lrcoef_is_valid = true;
-        en_temp = true;
 
-        button_press_detected = false;   
+        t_ready = true; //set flag to indicate that temperature sensing has been initalized successfully 
     }
 
-    void TemperatureSensing::manageTemperatureSensor()
-    {
-        if(en_temp) //check to see if the temperature sensors have been initalized
-        {
-            if(sensors.isConnected(tempDeviceAddress)) 
-            {
-                if ((uint32_t)((long)millis() - lastTempRequest) >= temp_integration_delay) // waited long enough??
-                {
-                    lrcoef_is_valid = false;
-                    
-                    temperatures[temperatures_index] = sensors.getTempFByIndex(0);
-                    temp_times[temperatures_index] = getSystemUptime();
+    /**
+     * Perform sensor management tasks.
+     */
+    void TemperatureSensing::manageTemperatureSensor(){
 
-                    sensors.requestTemperatures();
+        if(t_ready){ //check to see if the temperature sensors have been initalized
+        
+            if(sensors->isConnected(sensor_address)){ //if the sensors have been initalized check to see if they're still connected
+
+                if ((uint32_t)((long)millis() - lastTempRequest) >= temp_integration_delay){ //has the minimum reading interval passed?
+                
+                    lrcoef_is_valid = false; //adding a new sensor reading will invalidate the coefficients
+                    
+                    temperatures[t_head_index] = sensors.getTempF(sensor_address);
+                    temp_times[t_head_index] = getSystemUptime();
+
+                    sensors->requestTemperatures(); //prepare for the next round by beginning sensor integration
                     lastTempRequest = millis();
 
-                    if(++temperatures_index > 59)
-                        temperatures_index = 0;
+                    if(++t_head_index > 59) //move the head up or around
+                        t_head_index = 0;
 
                     getTemperatureTrend();
-
-                    lrcoef_is_valid = true;
                 }
             }
-            else
-            {
-                en_temp = false;
+            else{
+
+                //there were no sensors disconnected or some other error occured
+                t_ready = false;
                 lrcoef_is_valid = false;
             }
         }
-        else{ //the temperature sensor needs to be initalized
+        else{ //the temperature sensor(s) needs to be initalized
 
-            sensors.begin();
+            sensors->begin();
 
-            if(sensors.getDeviceCount() > 0) //check to see if any sensors are connected
+            if(sensors->getDeviceCount() > 0) //check to see if any sensors are connected
                 sampleFill(); //if they are then fill the sample buffer
         }
     }
 
-    uint8_t TemperatureSensing::compareTemperature(){
-
-        if(en_temp && active_config.enable_temperature_control)
-        {
-            if(!lrcoef_is_valid)
-                return t_chk_res; //just skip this round
-
-            //float temperature = lrt;
-            if(active_config.cmp_options == 0) //less than
-            {
-            if(getLinRegTemperature(0) < active_config.setpoint_0)
-                return true;
-            else
-                return false; 
-            }
-            else
-                if(active_config.cmp_options == 1)
-                {
-                    if(getLinRegTemperature(0) > active_config.setpoint_0)
-                        return true;
-                    else
-                        return false;
-                }
-                else
-                    return false;
-        }
-        else
-            return false;
-    }
-
+    /**
+     * Do the stuff that needs to be done to calculate the linear regression coefficents.
+     */
     void TemperatureSensing::getTemperatureTrend()
     {
-        if(lrcoef_is_valid)
+        if(lrcoef_is_valid) //if there's no reason to update the coefficients then return
             return;
         
         lrCoef[0] = 0;
         lrCoef[1] = 0;
 
+        //find the lowest time
         uint64_t min_time = temp_times[0];
 
-        for(uint8_t i = 1; i < 60; i++){
-
+        for(uint8_t i = 1; i < 60; i++)
             if(temp_times[i] < min_time)
-            min_time = temp_times[i];
-        }
+                min_time = temp_times[i];
 
+        //normalize the times
         float sample_times[60];
-
         for(int i = 0; i < 60; i++)
-            sample_times[i] = (float)(temp_times[i] - min_time)/1000.0 ;
+            sample_times[i] = (float)(temp_times[i] - min_time)*0.001 ;
         
+        //perform the regression calculation
         LinearRegression::simpLinReg(sample_times, (float*)temperatures, (float*)lrCoef, 60);
+
+        lrcoef_is_valid = true;
     }
 
-    
-
+    bool TemperatureSensing::isReady(){
+        return t_ready;
+    }
 }

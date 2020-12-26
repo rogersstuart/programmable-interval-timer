@@ -21,6 +21,7 @@ namespace PIT{
             xybar=xybar+x[i]*y[i];
             xsqbar=xsqbar+x[i]*x[i];
         }
+        
         xbar/=num;
         ybar/=num;
         xybar/=num;

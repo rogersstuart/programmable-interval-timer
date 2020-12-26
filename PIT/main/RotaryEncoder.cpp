@@ -2,7 +2,7 @@
 #include "RotaryEncoder.h"
 #include "PIT.h"
 
-void IRAM_ATTR AiEsp32RotaryEncoder::readEncoder_ISR(){
+void IRAM_ATTR RotaryEncoder::readEncoder_ISR(){
     
 	portENTER_CRITICAL_ISR(&(mux));
 	if (isEnabled) {
@@ -20,7 +20,7 @@ void IRAM_ATTR AiEsp32RotaryEncoder::readEncoder_ISR(){
 }
 
 RotaryEncoder::RotaryEncoder(uint8_t encoder_APin, uint8_t encoder_BPin, uint8_t encoderSteps) : 
-    encoder_APin{encoder_APin},encoder_BPin{encoder_BPin},encoderSteps{encoderSteps}{
+    encoderAPin{encoder_APin},encoderBPin{encoder_BPin},encoderSteps{encoderSteps}{
 
 	old_AB = 0;
 

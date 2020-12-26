@@ -10,6 +10,8 @@ namespace PIT{
                 extern class OneWire;
                 extern class DallasTemperature;
                 extern class DeviceAddress;
+                extern class TaskHandle_t;
+                extern class SemaphoreHandle_t;
 
                 typedef unsigned char uint8_t;
                 typedef char int8_t;
@@ -23,20 +25,23 @@ namespace PIT{
 
                         OneWire * one_wire;
                         DallasTemperature * sensors;
-                        DeviceAddress * tempDeviceAddress;
+                        DeviceAddress * sensor_address;
 
                         TaskHandle_t * task_handle;
-                        _lock_t * one_wire_lock;
+                        SemaphoreHandle_t * reading_lock;
 
+                        float lrCoef[2];
                         uint8_t lrcoef_is_valid = false;
 
-                        unsigned long lastTempRequest = 0; //last temperature timestamp
+                        unsigned long lastTempRequest = 0; //last temperature request timestamp
                         const uint16_t temp_integration_delay = 750;
 
                         uint64_t temp_times[60];
 
                         float temperatures[60]; //moving window
-                        int8_t temperatures_index = 0;
+                        int8_t t_head_index = 0;
+
+                        bool t_ready = false;
 
                         void manageTemperatureSensor();
                         void sampleFill();
@@ -44,13 +49,16 @@ namespace PIT{
 
                 public:
 
-                        TemperatureSensing(OneWire * oneWire, _lock_t * oneWireLock);
+                        TemperatureSensing(OneWire * oneWire);
                         ~TemperatureSensing();
+
                         void start();
                         void stop();
 
                         float getLatestTemperature();
                         float getLinRegTemperature(float time);
+
+                        bool isReady();
         };
 
 }

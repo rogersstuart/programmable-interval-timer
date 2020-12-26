@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "LiquidCrystal_I2C.h"
 #include "Display.h"
 #include "UI.h"
 
@@ -6,6 +7,9 @@ namespace PIT{
 
     void UI::menuSelection()
     {
+        auto display = Display::getInstance();
+        LiquidCrystal_I2C& lcd = display.checkOut();
+        
         lcd.setCursor(0, 1);
 
         int button_press = getButtonPress();
@@ -145,7 +149,7 @@ namespace PIT{
         }    
     }
 
-    static void UI::selectOption()
+    void UI::selectOption()
     {
         int menu_position = 0;
 
@@ -195,7 +199,7 @@ namespace PIT{
         }
     }
 
-    static void UI::selectOptionMenuItem1()
+    void UI::selectOptionMenuItem1()
     {
         lcd.noBlink();
         
@@ -212,7 +216,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::selectOptionMenuItem2()
+    void UI::selectOptionMenuItem2()
     {    
         lcd.noBlink();
         
@@ -229,7 +233,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::selecOptionMenuItem3()
+    void UI::selecOptionMenuItem3()
     {
         lcd.noBlink();
         
@@ -241,7 +245,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::setPulseWidthMenu()
+    void UI::setPulseWidthMenu()
     {
         uint8_t edit_selection_index = 0;
         uint8_t scale = 60;
@@ -346,7 +350,7 @@ namespace PIT{
         return;    
     }
 
-    static void UI::setPeriodWidthMenu()  //:)
+    void UI::setPeriodWidthMenu()  //:)
     {
         uint8_t edit_selection_index = 0;
         uint8_t scale = 60;
@@ -451,54 +455,9 @@ namespace PIT{
         return;
     }
 
-    static void UI::temperatureOptionsMenu()
-    {
-        int menu_position = 0;
-        temperatureOptionMenuItem1();
+    
 
-        uint32_t timer = millis();
-        while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
-        {
-            switch(getButtonPress())
-            {
-                case 0:
-                if(++menu_position == 4)
-                menu_position = 0;
-                timer = millis();
-                switch(menu_position)
-                {
-                    case 0: temperatureOptionMenuItem1(); //enable disable
-                    break;
-                    case 1: temperatureOptionMenuItem2();
-                    break;
-                    case 2: temperatureOptionMenuItem3();
-                    break;
-                    case 3: temperatureOptionMenuItem4();
-                    break;
-                }
-                break;
-                case 1:
-                timer = millis();
-                switch(menu_position)
-                {
-                    case 0: setTCEnable();
-                    break;
-                    case 1: editSetpoint0();
-                    break;
-                    case 2: editMatchCondition();
-                    break;
-                    case 3: setBlockingEnable();
-                    break;
-
-                }
-                
-                return;
-                break;
-            }
-        }
-    }
-
-    static void UI::editMatchCondition()
+    void UI::editMatchCondition()
     {
         uint8_t selected_option = active_config.cmp_options;
 
@@ -548,7 +507,7 @@ namespace PIT{
         }
     }
 
-    static void UI::temperatureOptionMenuItem1()
+    void UI::temperatureOptionMenuItem1()
     {
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -564,7 +523,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::temperatureOptionMenuItem2()
+    void UI::temperatureOptionMenuItem2()
     {
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -582,7 +541,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::temperatureOptionMenuItem3()
+    void UI::temperatureOptionMenuItem3()
     {
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -598,7 +557,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::temperatureOptionMenuItem4()
+    void UI::temperatureOptionMenuItem4()
     {
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -616,7 +575,61 @@ namespace PIT{
         lcd.blink();
     }
 
-    static void UI::setTCEnable()
+    void UI::temperatureOptionsMenu()
+    {
+        int menu_position = 0;
+        temperatureOptionMenuItem1();
+
+        uint32_t timer = millis();
+        while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
+        {
+            switch(getButtonPress())
+            {
+                case 0:
+
+                    if(++menu_position == 4)
+                        menu_position = 0;
+
+                    timer = millis();
+
+                    switch(menu_position)
+                    {
+                        case 0: temperatureOptionMenuItem1(); //enable disable
+                        break;
+                        case 1: temperatureOptionMenuItem2();
+                        break;
+                        case 2: temperatureOptionMenuItem3();
+                        break;
+                        case 3: temperatureOptionMenuItem4();
+                        break;
+                    }
+
+                    break;
+
+                case 1:
+
+                    timer = millis();
+
+                    switch(menu_position)
+                    {
+                        case 0: setTCEnable();
+                        break;
+                        case 1: editSetpoint0();
+                        break;
+                        case 2: editMatchCondition();
+                        break;
+                        case 3: setBlockingEnable();
+                        break;
+
+                    }
+                
+                    return;
+                    break;
+            }
+        }
+    }
+
+    void UI::setTCEnable()
     {
         uint8_t selected_option = active_config.enable_temperature_control ? 0 : 1;
         
@@ -682,7 +695,7 @@ namespace PIT{
         }
     }
 
-    static void UI::setBlockingEnable()
+    void UI::setBlockingEnable()
     {
         uint8_t selected_option = active_config.tmp_ctl_is_blocking;
         
@@ -745,7 +758,7 @@ namespace PIT{
         }
     }
 
-    static void UI::editSetpoint0()
+    void UI::editSetpoint0()
     {
         float val_bak = active_config.setpoint_0;
         float pot_value = 255;
