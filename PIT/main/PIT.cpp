@@ -12,9 +12,12 @@
 #include "Utilities.h"
 #include "Display/Display.h"
 #include "ButtonTracker.h"
-#include "PITConfig.h"
+#include "Persistance.h"
 
 #include "UserInterface/UI.h"
+
+#include <vector>
+#include <functional>
 //
 
 namespace PIT{
@@ -41,51 +44,7 @@ namespace PIT{
     uint8_t force_extern = 0;
     uint8_t t_chk_res = false;
 
-    /**
-     * Initalizes the system.
-     * 
-     * @param none
-     * @return none
-     */
-    void init()
-    {
-        Serial.begin(SERIAL_RATE);
-
-        pinMode(A0, INPUT_PULLUP);
-        pinMode(A2, INPUT_PULLUP);
-        pinMode(A3, INPUT_PULLUP);
-        
-        Display::getInstance(); //initalize magic static
-
-        UI::showBootMessage();
-
-        button = new Button(BUTTON_PIN, [&](){buttonCallback();});
-        button->start();
-
-        if(Persistance::getConfig().run_on_power_up)
-            setMode(2);
-        else
-            setMode(0);
-
-        while(true)
-            loop();
-    }
-
-    void loop()
-    {
-        //refresh system uptime
-        Utilities::getSystemUptime();
-        
-        manageTemperatureSensor();
-
-        UI::displayStatusLine();
-        
-        menuSelection();
-
-        if(Serial.available() >= 2)
-            if(Serial.read() == 0b10101111)
-                processSerial();
-    }
+    //vector<function<void(PRESS_TYPE)>>
 
     void buttonCallback(PRESS_TYPE press_type){
 
@@ -194,6 +153,54 @@ namespace PIT{
             uptime_at_pause = getSystemUptime();
             return;  
         }
+    }
+
+    void loop()
+    {
+        //refresh system uptime
+        Utilities::getSystemUptime();
+
+        UI::displayStatusLine();
+        UI::idleDisplay();
+
+        /*
+        if(Serial.available() >= 2)
+            if(Serial.read() == 0b10101111)
+                processSerial();
+        */
+
+        vTaskDelay(10); //give other tasks a chance to do something
+    }
+
+    /**
+     * Initalizes the system.
+     * 
+     * @param none
+     * @return none
+     */
+    void init()
+    {
+        Serial.begin(SERIAL_RATE);
+
+        pinMode(A0, INPUT_PULLUP);
+        pinMode(A2, INPUT_PULLUP);
+        pinMode(A3, INPUT_PULLUP);
+        
+        Persistance.getConfig(); //initalize magic static
+        Display::getInstance(); //initalize magic static
+
+        UI::showBootMessage(); //default delay
+
+        if(Persistance::getConfig().run_on_power_up)
+            setMode(2);
+        else
+            setMode(0);
+
+        button = new Button(BUTTON_PIN, [](){buttonCallback();});
+        button->start(); //begin listening for button presses
+
+        while(true)
+            loop();
     }
 }
 

@@ -25,30 +25,22 @@ namespace PIT{
         goHome();// go home
     }
 
-    void Display::goHome(bool en_blink){
+    inline void Display::goHome(bool en_blink){
 
-        xSemaphoreTake(lcd_lock, 0xFFFF);
-        
         if(en_blink)
             lcd.noBlink();
         
         lcd.setCursor(0, 0);
-
-        xSemaphoreGive(lcd_lock);
     }
 
     inline void Display::LCDPrint_P(const char str[]){
 
-        xSemaphoreTake(lcd_lock, 0xFFFF);
-        
         char c;
         if(!str)
             return;
 
         while((c = pgm_read_byte(str++)))
             lcd.print(c);
-
-        xSemaphoreGive(lcd_lock);
     }
 
     LiquidCrystal_I2C& Display::checkOut(){

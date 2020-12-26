@@ -1,26 +1,29 @@
 #ifndef TEMPERATURE_SENSOR_H
 #define TEMPERATURE_SENSOR_H
 
+#define TEMP_INTEGRATION_DELAY 750
+
 namespace PIT{
 
-        class OneWire;
-        class DallasTemperature;
-        class DeviceAddress;
-
         namespace{
+
+                extern class OneWire;
+                extern class DallasTemperature;
+                extern class DeviceAddress;
+
                 typedef unsigned char uint8_t;
                 typedef char int8_t;
                 typedef unsigned short uint16_t;
                 typedef unsigned long long uint64_t;
         }
-        
+
         class TemperatureSensing
         {
                 private:
 
                         OneWire * one_wire;
                         DallasTemperature * sensors;
-                        DeviceAddress tempDeviceAddress;
+                        DeviceAddress * tempDeviceAddress;
 
                         TaskHandle_t * task_handle;
                         _lock_t * one_wire_lock;
@@ -36,13 +39,18 @@ namespace PIT{
                         int8_t temperatures_index = 0;
 
                         void manageTemperatureSensor();
+                        void sampleFill();
+                        void getTemperatureTrend();
 
                 public:
 
                         TemperatureSensing(OneWire * oneWire, _lock_t * oneWireLock);
                         ~TemperatureSensing();
                         void start();
-                        void stop();    
+                        void stop();
+
+                        float getLatestTemperature();
+                        float getLinRegTemperature(float time);
         };
 
 }

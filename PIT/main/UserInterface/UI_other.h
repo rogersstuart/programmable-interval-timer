@@ -13,8 +13,8 @@ namespace PIT{
         lcd.setCursor(0, 1);
         lcd.print(Display::group_name_str);
 
-        display.checkIn(lcd);
-
         delay(delay_ms);
+
+        display.checkIn(lcd); //needs to occur after the delay to guarantee that the screen is blocked for the duration of the message
     }
 }

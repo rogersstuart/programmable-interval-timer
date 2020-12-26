@@ -1,53 +1,58 @@
-#include "TemperatueSensor.h"
+#include "PIT.h"
+
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+#include "TemperatureSensing.h"
+#include "LinearRegression.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#include "LinearRegression.h"
+#include "Display/Display.h"
+#include "Utilities.h"
 
 namespace PIT{
 
-    TemperatueSensor::TemperatureSensor(OneWire * one_wire, _lock_t * one_wire_lock)
+    TemperatureSensing::TemperatureSensing(OneWire * one_wire, _lock_t * one_wire_lock)
     {
         this->one_wire = one_wire;
         this->one_wire_lock = one_wire_lock;
         sensors = new DallasTemperature(one_wire);
     }
 
-    void TemperatureSensor::stop()
+    void TemperatureSensing::stop()
     {
-        xTaskDelete(task_handle);
+        vTaskDelete(task_handle);
     }
 
     //destructor
-    TemperatureSensor::~TemperatureSensing(){
+    TemperatureSensing::~TemperatureSensing(){
         stop();
         delete sensors;
     }
 
-    void TemperatureSensor::start()
+    void TemperatureSensing::start()
     {
         xTaskCreate([&](){
             while(true)
                 manageTemperatureSensor();
-        }], "t_sense_mgr", 8192, NULL, 1, &task_handle);
+        }, "t_sense_mgr", 8192, NULL, 1, &task_handle);
     }
 
-    float TemperatueSensor::getLatestTemperature(){
+    float TemperatureSensing::getLatestTemperature(){
 
         return temperatures[temperatures_index > 0 ? temperatures_index - 1 : 59];
     }
 
-    float TemperatueSensor::getLinRegTemperature(float time){ //time in seconds
+    float TemperatureSensing::getLinRegTemperature(float time){ //time in seconds
     
         uint64_t min_time = temp_times[temperatures_index];
         uint64_t max_time = temp_times[temperatures_index > 0 ? temperatures_index - 1 : 59];
 
         float span = (float)(max_time-min_time)/1000.0;
 
-        float time_offset = (getSystemUptime() - max_time) / 1000.0;
+        float time_offset = (Utilities::getSystemUptime() - max_time) / 1000.0;
             
         return (lrCoef[0]*(span+time_offset+time))+lrCoef[1];
     }
@@ -58,40 +63,46 @@ namespace PIT{
      * @param none
      * @return none
      */
-    void TemperatureSensor::sampleFill(){
+    void TemperatureSensing::sampleFill(){
+
+        //it works against my organization but since "sample fill" has more to do with temperature sensing and less to do with UI
+        //for now the UI related functions will stay here.
+        
+        auto display = Display::getInstance();
+        auto lcd = display.checkOut();
 
         lcd.setCursor(0, 0);
         lcd.print(F("Sample Fill"));
-        LCDPrint_P(blank_line_str);
+        display.LCDPrint_P(Display::blank_line_str);
         lcd.setCursor(0, 1);
-        LCDPrint_P(blank_line_str);
+        display.LCDPrint_P(Display::blank_line_str);
 
         //prepare the sensor(s) for reading        
-        sensors.getAddress(tempDeviceAddress, 0);
-        sensors.setResolution(tempDeviceAddress, 12);
-        sensors.setWaitForConversion(false);
+        sensors->getAddress(tempDeviceAddress, 0);
+        sensors->setResolution(tempDeviceAddress, 12);
+        sensors->setWaitForConversion(false);
 
         //collect samples and fill the buffer
         for(int iqw = 0; iqw < 60; iqw++)
         {
-            if(!sensors.isConnected(tempDeviceAddress)) //if the process fails then break out an reattempt
+            if(!sensors->isConnected(tempDeviceAddress)) //if the process fails then break out an reattempt
                 return;
             
             lcd.setCursor(0, 1);
             lcd.print(iqw+1);
             lcd.print(F(" of 60"));
 
-            sensors.requestTemperatures();
+            sensors->requestTemperatures();
 
-            delay(temp_integration_delay);
+            delay(TEMP_INTEGRATION_DELAY);
 
-            float temperature = sensors.getTempFByIndex(0);
+            float temperature = sensors->getTempFByIndex(0);
 
             temperatures[iqw] = temperature;
             temp_times[iqw] = getSystemUptime();
         }
 
-        sensors.requestTemperatures();
+        sensors->requestTemperatures();
         lastTempRequest = millis();
         
         temperatures_index = 0;
@@ -103,7 +114,7 @@ namespace PIT{
         button_press_detected = false;   
     }
 
-    void TemperatueSensor::manageTemperatureSensor()
+    void TemperatureSensing::manageTemperatureSensor()
     {
         if(en_temp) //check to see if the temperature sensors have been initalized
         {
@@ -142,7 +153,7 @@ namespace PIT{
         }
     }
 
-    uint8_t TemperatueSensor::compareTemperature(){
+    uint8_t TemperatureSensing::compareTemperature(){
 
         if(en_temp && active_config.enable_temperature_control)
         {
@@ -172,19 +183,15 @@ namespace PIT{
             return false;
     }
 
-    void TemperatueSensor::getTemperatureTrend()
+    void TemperatureSensing::getTemperatureTrend()
     {
         if(lrcoef_is_valid)
             return;
-        
-        //float temp_cpy[60];
-        //memcpy((uint8_t*)&temp_cpy, (uint8_t*)&temperatures, sizeof(float)*60);
         
         lrCoef[0] = 0;
         lrCoef[1] = 0;
 
         uint64_t min_time = temp_times[0];
-        //uint8_t tcheck = 0;
 
         for(uint8_t i = 1; i < 60; i++){
 

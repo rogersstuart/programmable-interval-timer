@@ -1,8 +1,9 @@
+#include "PIT.h"
 #include "Utilities.h"
 
 namespace PIT{
 
-    static string Utilities::generateTimeString(uint64_t total_seconds, uint8_t en_days, uint8_t zero_pad, uint8_t force_full_display){
+    String Utilities::generateTimeString(uint64_t total_seconds, uint8_t en_days, uint8_t zero_pad, uint8_t force_full_display){
     
         uint8_t * tbreak = timeBreakdown(&total_seconds);
 
@@ -35,19 +36,19 @@ namespace PIT{
         return str;   
     }
 
-    static uint8_t* Utilities::timeBreakdown(uint64_t * seconds)
+    uint8_t* Utilities::timeBreakdown(uint64_t * seconds)
     {
         static uint8_t tbreak[4];
         
-        tbreak[0] = *seconds/seconds_in_day;
-        tbreak[1] = (*seconds%seconds_in_day)/seconds_in_hour;
-        tbreak[2] = ((*seconds%seconds_in_day)%seconds_in_hour)/seconds_in_minute;
-        tbreak[3] = ((*seconds%seconds_in_day)%seconds_in_hour)%seconds_in_minute;
+        tbreak[0] = *seconds/SECONDS_IN_DAY;
+        tbreak[1] = (*seconds%SECONDS_IN_DAY)/SECONDS_IN_HOUR;
+        tbreak[2] = ((*seconds%SECONDS_IN_DAY)%SECONDS_IN_HOUR)/SECONDS_IN_MINUTE;
+        tbreak[3] = ((*seconds%SECONDS_IN_DAY)%SECONDS_IN_HOUR)%SECONDS_IN_MINUTE;
 
         return (uint8_t*)&tbreak;
     }
 
-    static uint64_t Utilities::getSystemUptime(){
+    uint64_t Utilities::getSystemUptime(){
 
         system_uptime += (uint64_t)((long)millis()-(uint32_t)system_uptime);
         return system_uptime;

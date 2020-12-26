@@ -36,7 +36,7 @@ namespace PIT{
             inline static const char group_name_str[] PROGMEM = "ATOMIC FRENZY 2020";
 
             inline void LCDPrint_P(const char str[]);
-            void goHome(bool en_blink = true);
+            inline void goHome(bool en_blink = true);
 
             LiquidCrystal_I2C& checkOut();
             void checkIn(LiquidCrystal_I2C& lcd);

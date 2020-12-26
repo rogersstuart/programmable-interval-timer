@@ -4,7 +4,7 @@
 
 namespace PIT{
 
-    static void UI::menuSelection()
+    void UI::menuSelection()
     {
         lcd.setCursor(0, 1);
 

@@ -15,7 +15,7 @@ namespace PIT{
 
         public:
 
-            static string generateTimeString(uint64_t total_seconds, uint8_t en_days, uint8_t zero_pad, uint8_t force_full_display);
+            static String generateTimeString(uint64_t total_seconds, uint8_t en_days, uint8_t zero_pad, uint8_t force_full_display);
             static uint8_t* timeBreakdown(uint64_t * seconds);
             static uint64_t getSystemUptime();
 
