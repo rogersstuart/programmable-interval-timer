@@ -163,16 +163,31 @@ namespace PIT{
 
     void Timer_Task(void * pv_param){
 
-        processTimer();
-        vTaskDelay(10);
+        while(true){
+            processTimer();
+            vTaskDelay(10);
+        }
     }
 
     void UI_Task(void * pv_param){
 
-        UI::displayStatusLine();
-        UI::idleDisplay();
+        while(true){
+            UI::displayStatusLine();
+            UI::idleDisplay();
 
-        vTaskDelay(20); //give other tasks a chance to do something
+            vTaskDelay(20); //give other tasks a chance to do something
+        }
+    }
+
+    /**
+     * Callback from button press interrupt
+     */
+    void buttonPressDetected(){
+
+        button_block_timer = millis();
+        press_detection_time = millis();
+        button_press_detected = true;
+        
     }
 
     /**
@@ -202,7 +217,7 @@ namespace PIT{
         //button = new Button(BUTTON_PIN, [](){buttonCallback();});
         //button->start(); //begin listening for button presses
 
-        attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), []{buttonPressDetected();}, FALLING);
+        attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonPressDetected, FALLING);
 
         t_sense = new TemperatureSensing(&oneWire);
 
@@ -211,17 +226,6 @@ namespace PIT{
 
         //create timer task
         xTaskCreate([&](){Timer_Task();}, "timerTask", 8000, NULL, 1, NULL);
-    }
-
-    /**
-     * Callback from button press interrupt
-     */
-    void buttonPressDetected(){
-
-        button_block_timer = millis();
-        press_detection_time = millis();
-        button_press_detected = true;
-        
     }
 }
 

@@ -25,7 +25,7 @@ namespace PIT{
         public:
 
             //UI_home.cpp
-            static void displayStatusLine(TemperatureSensor * sensor = NULL);
+            static void displayStatusLine(TemperatureSensor * sensor);
             static void idleDisplay();
 
             //UI_menus.cpp
