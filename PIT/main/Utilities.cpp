@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "PIT.h"
 #include "Utilities.h"
 

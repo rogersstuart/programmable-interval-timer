@@ -4,8 +4,11 @@ namespace PIT{
     extern void init();
 }
 
-void app_main()
-{
+extern "C"{
+  void app_main();
+}
+
+void app_main(){
     initArduino();
     PIT::init();
 }

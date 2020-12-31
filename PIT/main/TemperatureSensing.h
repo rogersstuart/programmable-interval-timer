@@ -1,22 +1,24 @@
 #ifndef TEMPERATURE_SENSOR_H
 #define TEMPERATURE_SENSOR_H
 
+#include <array>
+
 #define TEMP_INTEGRATION_DELAY 750
+
+class OneWire;
+class DallasTemperature;
+class DeviceAddress;
+class TaskHandle_t;
+class SemaphoreHandle_t;
 
 namespace PIT{
 
         namespace{
 
-                extern class OneWire;
-                extern class DallasTemperature;
-                extern class DeviceAddress;
-                extern class TaskHandle_t;
-                extern class SemaphoreHandle_t;
-
-                typedef unsigned char uint8_t;
-                typedef char int8_t;
-                typedef unsigned short uint16_t;
-                typedef unsigned long long uint64_t;
+                //typedef unsigned char uint8_t;
+                //typedef char int8_t;
+                //typedef unsigned short uint16_t;
+                //typedef unsigned long long uint64_t;
         }
 
         class TemperatureSensing
@@ -30,15 +32,14 @@ namespace PIT{
                         TaskHandle_t * task_handle;
                         SemaphoreHandle_t * reading_lock;
 
-                        float lrCoef[2];
+                        std::array<float, 2> lrCoef;
                         uint8_t lrcoef_is_valid = false;
 
                         unsigned long lastTempRequest = 0; //last temperature request timestamp
-                        const uint16_t temp_integration_delay = 750;
 
                         uint64_t temp_times[60];
-
                         float temperatures[60]; //moving window
+                        
                         int8_t t_head_index = 0;
 
                         bool t_ready = false;
@@ -49,16 +50,36 @@ namespace PIT{
 
                 public:
 
+                        class SensorState{
+
+                                private:
+
+                                        SensorState() = default;
+
+                                public:
+
+                                        bool is_ready = false;
+                                        uint64_t capture_time;
+                                        
+                                        int head_index; //super lazy
+                                        std::array<std::pair<uint64_t, float>*, 60> * samples = NULL;
+                                        std::array<float, 2> * lrCoef = NULL;
+
+                                        ~SensorState();
+
+                                        float& getLatestTemperature();
+                                        float getLinRegTemperature(float&& time);
+                        };
+
                         TemperatureSensing(OneWire * oneWire);
                         ~TemperatureSensing();
 
                         void start();
                         void stop();
 
-                        float getLatestTemperature();
-                        float getLinRegTemperature(float time);
+                        SensorState* getState();
 
-                        bool isReady();
+                        static uint8_t TemperatureSensing::tcheck(Persistance::PITConfig * config, TemperatureSensing::SensorState * sensor_state);
         };
 
 }

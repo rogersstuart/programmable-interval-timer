@@ -1,7 +1,9 @@
 #ifndef PIT_H
 #define PIT_H
 
-#define ARDUINO 100
+#ifndef ARDUINO
+#define ARDUINO 101
+#endif //ARDUINO
 
 #define INCLUDE_vTaskDelete 1
 
@@ -10,15 +12,6 @@
 #define BUTTON_PIN 2
 #define RELAY_PIN 4
 #define ONE_WIRE_PIN 10
-
-#define ROTARY_ENCODER_A_PIN 32
-#define ROTARY_ENCODER_B_PIN 21
-
-#define SHORT_PRESS_DURATION 100
-#define LONG_PRESS_DURATION 1000
-#define NUISANCE_PRESS_DURATION 10000
-
-#define BUTTON_READ_BLOCK_DURATION 1000/30
 
 #define BRINGUP_CODE 0xCFB3
 

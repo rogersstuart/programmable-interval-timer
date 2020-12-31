@@ -1,10 +1,10 @@
 #include <Arduino.h>
-#include "Display.h"
+#include "Display/Display.h"
 #include "UI.h"
 
 namespace PIT{
 
-    void UI::showBootMessage(int delay_ms){
+    void UI::showBootMessage(LiquidCrystal_I2C& lcd, int delay_ms){
     
         auto display = Display::getInstance();
         auto lcd = display.checkOut();
@@ -14,7 +14,5 @@ namespace PIT{
         lcd.print(Display::group_name_str);
 
         delay(delay_ms);
-
-        display.checkIn(lcd); //needs to occur after the delay to guarantee that the screen is blocked for the duration of the message
     }
 }

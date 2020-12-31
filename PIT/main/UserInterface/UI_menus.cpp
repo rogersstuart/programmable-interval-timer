@@ -1,280 +1,268 @@
-#include "PIT.h"
 #include <Arduino.h>
-#include "Display.h"
+#include "Display/Display.h"
 #include "UI.h"
+#include <LiquidCrystal_I2C.h>
+#include "Persistance.h"
+#include "Utilities.h"
+#include "PIT.h"
+#include "TimerCore.h"
+#include "RotaryEncoder.h"
 
 namespace PIT{
 
-    void UI::menuSelection()
-    {
-        auto display = Display::getInstance();
-        LiquidCrystal_I2C& lcd = display.checkOut();
-        
+    using PITConfig = Persistance::PITConfig;
+
+    void UI::menuSelection(PRESS_TYPE button_press, PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.setCursor(0, 1);
 
-        int button_press = getButtonPress();
-
-        if(button_press == -1)
-            return;
-        else
-            if(button_press == 0)
-            {
-                
-                if(run_mode == 2)
-                display.LCDPrint_P(Display::stop_pause_str);
-                    //lcd.print(F(" Stop     Pause "));
+        if(button_press == 0)
+        {
+            if(run_mode == 2)
+                Display::LCDPrint_P(lcd, Display::stop_pause_str);
+            else
+                if(run_mode == 1)
+                    Display::LCDPrint_P(lcd, Display::stop_run_str);
                 else
-                    if(run_mode == 1)
-                    display.LCDPrint_P(Display::stop_run_str);
-                        //lcd.print(F(" Stop       Run "));
-                    else
-                        if(run_mode == 0)
-                        display.LCDPrint_P(Display::run_str);
-                            //lcd.print(F("       Run      "));
-                            
+                    if(run_mode == 0)
+                        Display::LCDPrint_P(lcd, Display::run_str);                           
 
-                uint16_t pot_value = getscaledPotValue(2);
+            uint16_t pot_value = 0; //encoder default positon
 
-                switch(pot_value)
-                {
-                    case 0: 
-                    
-                    switch(run_mode)
-                    {
-                        case 2: lcd.setCursor(1 , 1); break;
-                        case 1: lcd.setCursor(1 , 1);break;
-                        case 0: lcd.setCursor(7 , 1);break;
-                    }
-                    break;
-                    case 1:
-                    switch(run_mode)
-                    {
-                        case 2: lcd.setCursor(10 , 1); break;
-                        case 1: lcd.setCursor(12 , 1);break;
-                        case 0: lcd.setCursor(7 , 1);break;
-                    }
-                    break;
-                }
-                                    
-                lcd.blink();
-                
-                uint32_t timer = millis();
-                while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
-                {
-                    pot_value = getscaledPotValue(2);
+            //reset the state of the encoder tracker
+            encoder.setBoundaries(0, 1, true);
+            encoder.reset();
 
-                    switch(pot_value)
-                    {
-                        case 0:
-                        
-                        switch(run_mode)
-                        {
-                            case 2: lcd.setCursor(1 , 1); break;
-                            case 1: lcd.setCursor(1 , 1);break;
-                            case 0: lcd.setCursor(7 , 1);break;
+            //while(getButtonPress() != )
+
+            switch(pot_value)
+            {
+                case 0: switch(run_mode){
+
+                            case 2: lcd.setCursor(1, 1); break;
+                            case 1: lcd.setCursor(1, 1); break;
+                            case 0: lcd.setCursor(7, 1); break;
                         }
+
                         break;
-                        case 1:
-                        switch(run_mode)
-                        {
+
+                case 1: switch(run_mode){
+
                             case 2: lcd.setCursor(10 , 1); break;
-                            case 1: lcd.setCursor(12 , 1);break;
-                            case 0: lcd.setCursor(7 , 1);break;
+                            case 1: lcd.setCursor(12 , 1); break;
+                            case 0: lcd.setCursor(7 , 1); break;
                         }
-                        break;
-                    }
 
-                    //delay(100);
+                        break;
+            }
+                                
+            lcd.blink();
+            
+            uint32_t timer = millis();
+            while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION){
 
-                    switch(getButtonPress())
-                    {
-                        case -2: //lcd.print("Nuisance Press");
-                        break;
-                        case -1: //lcd.print("No Press");
-                        break;
-                        case 0: //active_config.pulse_width = (uint64_t)pot_value;
-                        //writeConfig();
-                        //lcd.print(F("Short Press"));
-                        //delay(1000);
-                        return;
-                        break;
-                        case 1:
-                        
-                        if(run_mode == 2)
-                        LCDPrint_P(stop_pause_str);
-                        //lcd.print(F(" Stop     Pause "));
-                        else
-                        if(run_mode == 1)
-                        LCDPrint_P(stop_run_str);
-                        //lcd.print(F(" Stop       Run "));
-                        else
-                        if(run_mode == 0)
-                        LCDPrint_P(run_str);
-                        //lcd.print(F("       Run      "));
-                        
-                        switch(pot_value)
-                        {
-                            case 0:
+                //pot_value = getscaledPotValue(2);
+                pot_value = encoder.readEncoder();
+
+                switch(pot_value){
+
+                    case 0: switch(run_mode)
+                            {
+                                case 2: lcd.setCursor(1 , 1); break;
+                                case 1: lcd.setCursor(1 , 1);break;
+                                case 0: lcd.setCursor(7 , 1);break;
+                            }
+                            break;
+
+                    case 1: switch(run_mode)
+                            {
+                                case 2: lcd.setCursor(10 , 1); break;
+                                case 1: lcd.setCursor(12 , 1);break;
+                                case 0: lcd.setCursor(7 , 1);break;
+                            }
+                            break;
+                }
+
+                //delay(100);
+
+                switch(getButtonPress())
+                {
+                    case -2: //lcd.print("Nuisance Press");
+                            break;
+
+                    case -1: //lcd.print("No Press");
+                            break;
+
+                    case 0: //config.pulse_width = (uint64_t)pot_value;
+                            //writeConfig();
+                            //lcd.print(F("Short Press"));
+                            //delay(1000);
+                            return;
+
+                    case 1: if(run_mode == 2)
+                                Display::LCDPrint_P(lcd, Display::stop_pause_str);
+                            else
+                                if(run_mode == 1)
+                                    Display::LCDPrint_P(lcd, Display::stop_run_str);
+                                else
+                                    if(run_mode == 0)
+                                        Display::LCDPrint_P(lcd, Display::run_str);
                             
-                            switch(run_mode)
+                            switch(pot_value)
                             {
-                                case 2: setMode(0); break;
-                                case 1: setMode(0);
-                                case 0: setMode(2); break;
+                                case 0: switch(run_mode)
+                                        {
+                                            case 2: TimerCore::setMode(0); break;
+                                            case 1: TimerCore::setMode(0);
+                                            case 0: TimerCore::setMode(2); break;
+                                        }
+                                        break;
+
+                                case 1: switch(run_mode)
+                                        {
+                                            case 2: TimerCore::setMode(1); break;
+                                            case 1: TimerCore::setMode(2); break;
+                                            case 0: TimerCore::setMode(2); break;
+                                        }
+                                        break;
                             }
-                            break;
-                            case 1:
-                            switch(run_mode)
-                            {
-                                case 2: setMode(1); break;
-                                case 1: setMode(2); break;
-                                case 0: setMode(2); break;
-                            }
-                            break;
-                        }
-                        return;
-                        //delay(1000);
-                        
-                        break;
-                    }
+                            return;
                 }
             }
-            else
-            if(button_press == 1)
-            {
-                selectOption();
-            }    
+        }
+        else
+        if(button_press == 1)
+        {
+            selectOption(config, lcd);
+        }    
     }
 
-    void UI::selectOption()
-    {
+    void UI::selectOption(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         int menu_position = 0;
 
-        switch(menu_position)
-        {
-            case 0: selectOptionMenuItem1();
+        switch(menu_position){
+
+            case 0: selectOptionMenuItem1(config, lcd);
             break;
-            case 1: selectOptionMenuItem2();
+            case 1: selectOptionMenuItem2(config, lcd);
             break;
-            case 2: selecOptionMenuItem3();
+            case 2: selecOptionMenuItem3(config, lcd);
             break;
         }
 
         uint32_t timer = millis();
-        while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
-        {
+        while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION){
+
             switch(getButtonPress())
             {
                 case 0:
-                if(++menu_position == 3)
-                    menu_position = 0;
-                switch(menu_position)
-                {
-                    case 0: selectOptionMenuItem1();
+
+                    if(++menu_position == 3)
+                        menu_position = 0;
+
+                    switch(menu_position){
+
+                        case 0: selectOptionMenuItem1(config, lcd);
+                        break;
+                        case 1: selectOptionMenuItem2(config, lcd);
+                        break;
+                        case 2: selecOptionMenuItem3(config, lcd);
+                    }
+
                     break;
-                    case 1: selectOptionMenuItem2();
-                    break;
-                    case 2: selecOptionMenuItem3();
-                }
-                break;
+
                 case 1:
 
-                switch(menu_position)
-                {
-                    case 0: setPulseWidthMenu();
-                    break;
-                    case 1: setPeriodWidthMenu();
-                    break;
-                    case 2: temperatureOptionsMenu();
-                    break;
+                    switch(menu_position){
 
-                }
+                        case 0: setPulseWidthMenu(config, lcd);
+                        break;
+                        case 1: setPeriodWidthMenu(config, lcd);
+                        break;
+                        case 2: temperatureOptionsMenu(config, lcd);
+                        break;
+                    }
                 
-                return;
-                break;
+                    return;
             }
         }
     }
 
-    void UI::selectOptionMenuItem1()
-    {
+    void UI::selectOptionMenuItem1(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.noBlink();
         
         lcd.setCursor(0, 1);
-        //lcd.print(F("                "));
-        LCDPrint_P(blank_line_str);
+        Display::LCDPrint_P(lcd, Display::blank_line_str);
         lcd.setCursor(0, 1);
         lcd.print(F("On "));
 
-        lcd.print(Utilities.generateTimeString(active_config.pulse_width, true, false, true));
+        lcd.print(Utilities::generateTimeString(config.pulse_width, true, false, true));
 
         lcd.setCursor(0, 1);
 
         lcd.blink();
     }
 
-    void UI::selectOptionMenuItem2()
-    {    
+    void UI::selectOptionMenuItem2(PITConfig& config, LiquidCrystal_I2C& lcd){    
+
         lcd.noBlink();
-        
         lcd.setCursor(0, 1);
-        //lcd.print(F("                "));
-        LCDPrint_P(blank_line_str);
+
+        Display::LCDPrint_P(lcd, Display::blank_line_str);
+
         lcd.setCursor(0, 1);
+
         lcd.print(F("Off "));
-
-        lcd.print(Utilities.generateTimeString(active_config.period-active_config.pulse_width, true, false, true));
+        lcd.print(Utilities::generateTimeString(config.period-config.pulse_width, true, false, true));
 
         lcd.setCursor(0, 1);
-
         lcd.blink();
     }
 
-    void UI::selecOptionMenuItem3()
-    {
+    void UI::selecOptionMenuItem3(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.noBlink();
-        
         lcd.setCursor(0, 1);
+
         lcd.print(F("  Temperature  "));
 
         lcd.setCursor(2, 1);
-
         lcd.blink();
     }
 
-    void UI::setPulseWidthMenu()
-    {
+    void UI::setPulseWidthMenu(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         uint8_t edit_selection_index = 0;
         uint8_t scale = 60;
         
         lcd.noBlink();
-
-        lcd.setCursor(0, 1);
-        //lcd.print(F("                "));
-        LCDPrint_P(blank_line_str);
         lcd.setCursor(0, 1);
 
+        Display::LCDPrint_P(lcd, Display::blank_line_str);
+
+        lcd.setCursor(0, 1);
         lcd.print("On ");
 
         String pw_pe_2 = "";
 
-        pw_pe_2 += Utilities.generateTimeString(active_config.pulse_width, false, true, true);
+        pw_pe_2 += Utilities::generateTimeString(config.pulse_width, false, true, true);
 
         lcd.print(pw_pe_2);
 
         lcd.setCursor(9, 1);//on 00:00:00
-
         lcd.blink();
 
         uint32_t timer = millis();
         uint16_t pot_value = getscaledPotValue(scale);
 
         if(pot_value < 10)
-        lcd.print('0');
+            lcd.print('0');
 
         lcd.print(pot_value);
 
-        uint8_t * tbreak = timeBreakdown((uint64_t*)&active_config.pulse_width);
+        uint8_t * tbreak = Utilities::timeBreakdown((uint64_t*)&config.pulse_width);
 
         while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
         {
@@ -283,21 +271,22 @@ namespace PIT{
             switch(edit_selection_index)
             {
                 case 0: lcd.setCursor(9, 1);
-                break;
+                        break;
 
                 case 1: lcd.setCursor(6, 1);
-                break;
+                        break;
 
                 case 2: lcd.setCursor(3, 1);
-                break;
+                        break;
             }
             
             if(new_pot_value != pot_value)
             {
                 timer = millis();
                 pot_value = new_pot_value;
+
                 if(pot_value < 10)
-                lcd.print('0');
+                    lcd.print('0');
 
                 lcd.print(pot_value);
             }
@@ -318,6 +307,7 @@ namespace PIT{
             {
                 case 0: if(++edit_selection_index == 3)
                             edit_selection_index = 0;
+
                         switch(edit_selection_index)
                         {
                             case 0: scale = 60;
@@ -329,35 +319,41 @@ namespace PIT{
                             case 2: scale = 24;
                             break;
                         }
+
                         pot_value = 255;
                         timer = millis();
+
                         break;
-                case 1: active_config.period -= active_config.pulse_width; 
-                        active_config.pulse_width = (uint64_t)tbreak[3] + (uint64_t)tbreak[2] * seconds_in_minute + (uint64_t)tbreak[1] * seconds_in_hour;
-                        active_config.period += active_config.pulse_width;
-                        if(active_config.pulse_width > active_config.period)
-                            active_config.period = active_config.pulse_width;
-                        if(active_config.period >= seconds_in_day*2)
-                            active_config.period = seconds_in_day*2-1;
-                        writeConfig();
-                return;
-                break;
+
+                case 1: config.period -= config.pulse_width; 
+                        config.pulse_width = (uint64_t)tbreak[3] + (uint64_t)tbreak[2] * SECONDS_IN_MINUTE + (uint64_t)tbreak[1] * SECONDS_IN_HOUR;
+                        config.period += config.pulse_width;
+
+                        if(config.pulse_width > config.period)
+                            config.period = config.pulse_width;
+
+                        if(config.period >= SECONDS_IN_DAY*2)
+                            config.period = SECONDS_IN_DAY*2-1;
+
+                        Persistance::setConfig(config);
+
+                        return;
             }
         }
         return;    
     }
 
-    void UI::setPeriodWidthMenu()  //:)
-    {
+    void UI::setPeriodWidthMenu(PITConfig& config, LiquidCrystal_I2C& lcd){  //:)
+
         uint8_t edit_selection_index = 0;
         uint8_t scale = 60;
 
-        uint64_t tdiff = active_config.period-active_config.pulse_width;
+        uint64_t tdiff = config.period-config.pulse_width;
         
         lcd.noBlink();
 
         lcd.setCursor(0, 1);
-        LCDPrint_P(blank_line_str);
+        Display::LCDPrint_P(lcd, Display::blank_line_str);
         //lcd.print(F("                "));
         lcd.setCursor(0, 1);
 
@@ -365,7 +361,7 @@ namespace PIT{
 
         String pw_pe_2 = "";
 
-        pw_pe_2 += Utilities.generateTimeString(tdiff, false, true, true);
+        pw_pe_2 += Utilities::generateTimeString(tdiff, false, true, true);
 
         lcd.print(pw_pe_2);
 
@@ -381,7 +377,7 @@ namespace PIT{
 
         lcd.print(pot_value);
 
-        uint8_t * tbreak = timeBreakdown(&tdiff);
+        uint8_t * tbreak = Utilities::timeBreakdown(&tdiff);
 
         while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
         {
@@ -412,65 +408,68 @@ namespace PIT{
             switch(edit_selection_index)
             {
                 case 0: tbreak[3] = pot_value;
-                break;
+                        break;
 
                 case 1: tbreak[2] = pot_value;
-                break;
+                        break;
 
                 case 2: tbreak[1] = pot_value;
-                break;
+                        break;
             }
 
             switch(getButtonPress())
             {
                 case 0: if(++edit_selection_index == 3)
-                edit_selection_index = 0;
-                switch(edit_selection_index)
-                {
-                    case 0: scale = 60;
-                    break;
+                            edit_selection_index = 0;
 
-                    case 1: scale = 60;
-                    break;
+                        switch(edit_selection_index)
+                        {
+                            case 0: scale = 60;
+                            break;
 
-                    case 2: scale = 24;
-                    break;
-                }
-                pot_value = 255;
-                timer = millis();
-                break;
+                            case 1: scale = 60;
+                            break;
+
+                            case 2: scale = 24;
+                            break;
+                        }
+
+                        pot_value = 255;
+                        timer = millis();
+
+                        break;
+
                 case 1: 
-                active_config.period = (uint64_t)tbreak[3] + (uint64_t)tbreak[2] * seconds_in_minute + (uint64_t)tbreak[1] * seconds_in_hour;
-                active_config.period += active_config.pulse_width;
-                if(active_config.period >= seconds_in_day*2)
-                    active_config.period = seconds_in_day*2-1;
-                writeConfig();
-                return;
-                break;
+                        config.period = (uint64_t)tbreak[3] + (uint64_t)tbreak[2] * SECONDS_IN_MINUTE + (uint64_t)tbreak[1] * SECONDS_IN_HOUR;
+                        config.period += config.pulse_width;
+
+                        if(config.period >= SECONDS_IN_DAY*2)
+                            config.period = SECONDS_IN_DAY*2-1;
+
+                        Persistance::setConfig(config);
+
+                        return;
             }
         }
+
         return;
     }
 
-    
+    void UI::editMatchCondition(PITConfig& config, LiquidCrystal_I2C& lcd){
 
-    void UI::editMatchCondition()
-    {
-        uint8_t selected_option = active_config.cmp_options;
+        uint8_t selected_option = config.cmp_options;
 
         lcd.noBlink();
-
         lcd.setCursor(0, 1);
 
-        LCDPrint_P(match_less_set_str);
+        Display::LCDPrint_P(lcd, Display::match_less_set_str);
 
         lcd.setCursor(8, 1);
 
         if(selected_option)
-        lcd.print(">");
+            lcd.print(">");
 
         lcd.setCursor(8, 1);
-
         lcd.blink();
 
         uint32_t timer = millis();
@@ -478,50 +477,49 @@ namespace PIT{
         {
             switch(getButtonPress())
             {
-                case 0:
-                if(++selected_option == 2)
-                selected_option = 0;
-                switch(selected_option)
-                {
-                    case 0:
-                    lcd.print('<');
-                    lcd.setCursor(8, 1);
-                    timer = millis();
-                    break;
-                    case 1:
-                    lcd.print('>');
-                    lcd.setCursor(8, 1);
-                    timer = millis();
-                    break;
-                }
-                break;
-                case 1:
-                active_config.cmp_options = selected_option;
-                writeConfig();
-                return;
-                break;
+                case 0: if(++selected_option == 2)
+                            selected_option = 0;
+
+                        switch(selected_option)
+                        {
+                            case 0: lcd.print('<');
+                                    lcd.setCursor(8, 1);
+                                    timer = millis();
+                                    break;
+
+                            case 1: lcd.print('>');
+                                    lcd.setCursor(8, 1);
+                                    timer = millis();
+                                    break;
+                        }
+
+                        break;
+
+                case 1: config.cmp_options = selected_option;
+                        Persistance::setConfig(config);
+                        return;
             }
         }
     }
 
-    void UI::temperatureOptionMenuItem1()
-    {
+    void UI::temperatureOptionMenuItem1(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.noBlink();
         lcd.setCursor(0, 1);
 
         lcd.print(F("TC Enabled? "));
 
-        if(active_config.enable_temperature_control)
+        if(config.enable_temperature_control)
             lcd.print("Yes   ");
         else
-        lcd.print("No     "); 
+            lcd.print("No     "); 
 
         lcd.setCursor(0, 1);
         lcd.blink();
     }
 
-    void UI::temperatureOptionMenuItem2()
-    {
+    void UI::temperatureOptionMenuItem2(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.noBlink();
         lcd.setCursor(0, 1);
 
@@ -529,7 +527,7 @@ namespace PIT{
 
         lcd.setCursor(9, 1);
 
-        lcd.print(active_config.setpoint_0, 1);
+        lcd.print(config.setpoint_0, 1);
 
         lcd.write((uint8_t)0b11011111);
         lcd.print('F');
@@ -538,24 +536,24 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::temperatureOptionMenuItem3()
-    {
+    void UI::temperatureOptionMenuItem3(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.noBlink();
         lcd.setCursor(0, 1);
 
-        LCDPrint_P(match_less_set_str);
+        Display::LCDPrint_P(lcd, Display::match_less_set_str);
 
         lcd.setCursor(8, 1);
 
-        if(active_config.cmp_options)
+        if(config.cmp_options)
             lcd.print('>');
 
         lcd.setCursor(0, 1);
         lcd.blink();
     }
 
-    void UI::temperatureOptionMenuItem4()
-    {
+    void UI::temperatureOptionMenuItem4(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         lcd.noBlink();
         lcd.setCursor(0, 1);
 
@@ -563,7 +561,7 @@ namespace PIT{
 
         lcd.setCursor(13, 1);
 
-        if(active_config.tmp_ctl_is_blocking)
+        if(config.tmp_ctl_is_blocking)
         lcd.print("Yes");
         else
         lcd.print("No ");
@@ -572,79 +570,71 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::temperatureOptionsMenu()
-    {
+    void UI::temperatureOptionsMenu(PITConfig& config, LiquidCrystal_I2C& lcd){
+
         int menu_position = 0;
-        temperatureOptionMenuItem1();
+        temperatureOptionMenuItem1(config, lcd);
 
         uint32_t timer = millis();
         while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
         {
             switch(getButtonPress())
             {
-                case 0:
+                case 0: if(++menu_position == 4)
+                            menu_position = 0;
 
-                    if(++menu_position == 4)
-                        menu_position = 0;
+                        timer = millis();
 
-                    timer = millis();
+                        switch(menu_position)
+                        {
+                            case 0: temperatureOptionMenuItem1(config, lcd); //enable disable
+                                    break;
+                            case 1: temperatureOptionMenuItem2(config, lcd);
+                                    break;
+                            case 2: temperatureOptionMenuItem3(config, lcd);
+                                    break;
+                            case 3: temperatureOptionMenuItem4(config, lcd);
+                                    break;
+                        }
 
-                    switch(menu_position)
-                    {
-                        case 0: temperatureOptionMenuItem1(); //enable disable
-                        break;
-                        case 1: temperatureOptionMenuItem2();
-                        break;
-                        case 2: temperatureOptionMenuItem3();
-                        break;
-                        case 3: temperatureOptionMenuItem4();
-                        break;
-                    }
-
-                    break;
-
-                case 1:
-
-                    timer = millis();
-
-                    switch(menu_position)
-                    {
-                        case 0: setTCEnable();
-                        break;
-                        case 1: editSetpoint0();
-                        break;
-                        case 2: editMatchCondition();
-                        break;
-                        case 3: setBlockingEnable();
                         break;
 
-                    }
-                
-                    return;
-                    break;
+                case 1: timer = millis();
+
+                        switch(menu_position)
+                        {
+                            case 0: setTCEnable(config, lcd);
+                                    break;
+                            case 1: editSetpoint0(config, lcd);
+                                    break;
+                            case 2: editMatchCondition(config, lcd);
+                                    break;
+                            case 3: setBlockingEnable(config, lcd);
+                                    break;
+
+                        }
+                    
+                        return;
             }
         }
     }
 
-    void UI::setTCEnable()
+    void UI::setTCEnable(PITConfig& config, LiquidCrystal_I2C& lcd)
     {
-        uint8_t selected_option = active_config.enable_temperature_control ? 0 : 1;
+        uint8_t selected_option = config.enable_temperature_control ? 0 : 1;
         
         lcd.noBlink();
-        
         lcd.setCursor(0, 1);
 
-        LCDPrint_P(yes_no_str);
+        Display::LCDPrint_P(lcd, Display::yes_no_str);
 
         switch(selected_option)
         {
-            case 0:
-            
-            lcd.setCursor(2, 1);
-            break;
-            case 1:
-            lcd.setCursor(12, 1);
-            break;
+            case 0: lcd.setCursor(2, 1);
+                    break;
+
+            case 1: lcd.setCursor(12, 1);
+                    break;
         }
 
         lcd.blink();
@@ -654,62 +644,52 @@ namespace PIT{
         {
             switch(selected_option)
             {
-                case 0:
-                
-                lcd.setCursor(2, 1);
-                break;
-                case 1:
-                lcd.setCursor(12, 1);
-                
-                break;
+                case 0: lcd.setCursor(2, 1);
+                        break;
+
+                case 1: lcd.setCursor(12, 1);
+                        break;
             }
 
             switch(getButtonPress())
             {
-                case 0:
-                if(++selected_option == 2)
-                selected_option = 0;
-                timer = millis();
-                break;
-                case 1:
+                case 0: if(++selected_option == 2)
+                            selected_option = 0;
 
-                switch(selected_option)
-                {
-                    case 0: active_config.enable_temperature_control = true;
-                            writeConfig();
-                            return;
-                    break;
-                    case 1: active_config.enable_temperature_control = false;
-                            writeConfig();
-                            return;
-                    break;
+                        timer = millis();
 
-                }
-                
-                return;
-                break;
+                        break;
+                        
+                case 1: switch(selected_option)
+                        {
+                            case 0: config.enable_temperature_control = true;
+                                    Persistance::setConfig(config);
+                                    return;
+
+                            case 1: config.enable_temperature_control = false;
+                                    Persistance::setConfig(config);
+                                    return;
+                        }
             }
         }
     }
 
-    void UI::setBlockingEnable()
+    void UI::setBlockingEnable(PITConfig& config, LiquidCrystal_I2C& lcd)
     {
-        uint8_t selected_option = active_config.tmp_ctl_is_blocking;
+        uint8_t selected_option = config.tmp_ctl_is_blocking;
         
         lcd.noBlink();
-        
         lcd.setCursor(0, 1);
 
-        LCDPrint_P(yes_no_str);
+        Display::LCDPrint_P(lcd, Display::yes_no_str);
 
         switch(selected_option)
         {
-            case 0:
-            lcd.setCursor(12, 1);
-            break;
-            case 1:
-            lcd.setCursor(2, 1);
-            break;
+            case 0: lcd.setCursor(12, 1);
+                    break;
+
+            case 1: lcd.setCursor(2, 1);
+                    break;
         }
 
         lcd.blink();
@@ -719,48 +699,42 @@ namespace PIT{
         {
             switch(selected_option)
             {
-                case 0:
-                lcd.setCursor(12, 1);
-                break;
-                case 1:
-                lcd.setCursor(2, 1);
-                break;
+                case 0: lcd.setCursor(12, 1);
+                        break;
+
+                case 1: lcd.setCursor(2, 1);
+                        break;
             }
 
             switch(getButtonPress())
             {
-                case 0:
-                if(++selected_option == 2)
-                selected_option = 0;
-                timer = millis();
-                break;
-                case 1:
+                case 0: if(++selected_option == 2)
+                            selected_option = 0;
+                        timer = millis();
+                        break;
 
-                switch(selected_option)
-                {
-                    case 0: active_config.tmp_ctl_is_blocking = false;
-                    writeConfig();
-                    return;
-                    break;
-                    case 1: active_config.tmp_ctl_is_blocking= true;
-                    writeConfig();
-                    return;
-                    break;
+                case 1: switch(selected_option)
+                        {
+                            case 0: config.tmp_ctl_is_blocking = false;
+                                    Persistance::setConfig(config);
 
-                }
-                
-                return;
-                break;
+                                    return;
+
+                            case 1: config.tmp_ctl_is_blocking= true;
+                                    Persistance::setConfig(config);
+
+                                    return;
+                        }
             }
         }
     }
 
-    void UI::editSetpoint0()
+    void UI::editSetpoint0(PITConfig& config, LiquidCrystal_I2C& lcd)
     {
-        float val_bak = active_config.setpoint_0;
+        float val_bak = config.setpoint_0;
         float pot_value = 255;
         
-        temperatureOptionMenuItem2();
+        temperatureOptionMenuItem2(config, lcd);
 
         lcd.setCursor(9, 1);
 
@@ -773,7 +747,7 @@ namespace PIT{
             {
                 pot_value = new_pot_value;
 
-                active_config.setpoint_0 = pot_value;
+                config.setpoint_0 = pot_value;
 
                 lcd.print(pot_value, 1);
                 lcd.write((uint8_t)0b11011111);
@@ -786,20 +760,16 @@ namespace PIT{
             
             switch(getButtonPress())
             {
-                case 0:
-                timer = millis();
-                break;
-                case 1:
+                case 0: timer = millis();
+                        break;
 
-                active_config.setpoint_0 = pot_value;
-                writeConfig();
-                
-                return;
-                break;
+                case 1: config.setpoint_0 = pot_value;
+                        Persistance::setConfig(config);
+                        return;
             }
         }
 
-        active_config.setpoint_0 = val_bak;
+        config.setpoint_0 = val_bak;
     }
 
 }

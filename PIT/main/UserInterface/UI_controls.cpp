@@ -4,10 +4,6 @@
 #include "Persistance.h"
 #include "PIT.h"
 
-#define NUISANCE_PRESS -1
-#define SHORT_PRESS 0
-#define LONG_PRESS 1
-
 namespace PIT{
 
     PRESS_TYPE UI::getButtonPress()

@@ -7,8 +7,8 @@ namespace PIT{
 
     Display::Display(){
 
-        vSemaphoreCreateBinary(lcd_lock)
-        xSemaphoreGive(lcd_lock);
+        vSemaphoreCreateBinary(*lcd_lock)
+        xSemaphoreGive(*lcd_lock);
         
         lcd.begin (16,2);
 
@@ -23,10 +23,10 @@ namespace PIT{
 
         lcd.backlight();
         
-        goHome();// go home
+        goHome(lcd);// go home
     }
 
-    inline void Display::goHome(bool en_blink){
+    inline void Display::goHome(LiquidCrystal_I2C& lcd, bool en_blink){
 
         if(en_blink)
             lcd.noBlink();
@@ -34,7 +34,7 @@ namespace PIT{
         lcd.setCursor(0, 0);
     }
 
-    inline void Display::LCDPrint_P(const char str[]){
+    inline void Display::LCDPrint_P(LiquidCrystal_I2C& lcd, const char str[]){
 
         char c;
         if(!str)
@@ -46,13 +46,13 @@ namespace PIT{
 
     LiquidCrystal_I2C& Display::checkOut(){
 
-        xSemaphoreTake(lcd_lock, 0xFFFF);
+        xSemaphoreTake(*lcd_lock, 0xFFFF);
         return lcd;
     }
 
     void Display::checkIn(LiquidCrystal_I2C& lcd){
 
-        xSemaphoreGive(lcd_lock);
+        xSemaphoreGive(*lcd_lock);
     }
 
     Display& Display::getInstance(){

@@ -8,20 +8,14 @@
 
 namespace PIT{
 
-    namespace{
-
-        extern class SemaphoreHandle_t;
-
-    }
-
     class Display final{
 
         private:
 
             LiquidCrystal_I2C lcd{0x27, 16, 2};
-            SemaphoreHandle_t lcd_lock;
+            SemaphoreHandle_t * lcd_lock;
 
-            Display() = default;
+            Display();
 
         public:
 
@@ -35,14 +29,14 @@ namespace PIT{
             inline static const char version_str[] PROGMEM = "PIT 2.0.0";
             inline static const char group_name_str[] PROGMEM = "ATOMIC FRENZY 2020";
 
-            inline void LCDPrint_P(const char str[]);
-            inline void goHome(bool en_blink = true);
+            static inline void LCDPrint_P(LiquidCrystal_I2C& lcd, const char str[]);
+            static inline void goHome(LiquidCrystal_I2C& lcd, bool en_blink = true);
 
             LiquidCrystal_I2C& checkOut();
             void checkIn(LiquidCrystal_I2C& lcd);
 
             static Display& getInstance();
-    }
+    };
 }
 
 #endif //DISPLAY_MANAGER_H

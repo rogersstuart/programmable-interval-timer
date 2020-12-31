@@ -1,18 +1,16 @@
+#include "TemperatureSensing.h"
 #include "PIT.h"
-
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#include "TemperatureSensing.h"
 #include "LinearRegression.h"
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-
 #include "Display/Display.h"
 #include "Utilities.h"
-
 #include "Persistance.h"
+#include <array>
+#include <map>
 
 namespace PIT{
 
@@ -22,7 +20,6 @@ namespace PIT{
     TemperatureSensing::TemperatureSensing(OneWire * one_wire)
     {
         this->one_wire = one_wire;
-        this->one_wire_lock = one_wire_lock;
         sensors = new DallasTemperature(one_wire);
     }
 
@@ -40,21 +37,23 @@ namespace PIT{
 
     void TemperatureSensing::start()
     {
-        xSemaphoreCreateBinary(reading_lock);
+        auto lock = xSemaphoreCreateBinary();
+        reading_lock = &lock;
         xSemaphoreGive(reading_lock);
         
-        xTaskCreate([&](){
+        xTaskCreate([](void * self){
 
             while(true)
             {
-                xSemaphoreTake(reading_lock);
-                manageTemperatureSensor();
-                xSemaphoreGive(reading_lock);
+                auto capture = (TemperatureSensing*)self;
+                xSemaphoreTake(capture->reading_lock, 0xFFFF);
+                capture->manageTemperatureSensor();
+                xSemaphoreGive(capture->reading_lock);
                 
                 vTaskDelay(100); //give other tasks room
             }
                 
-        }, "t_sense_mgr", 8192, NULL, 1, &task_handle);
+        }, "t_sense_mgr", 8192, this, 1, task_handle);
     }
 
     /**
@@ -63,13 +62,9 @@ namespace PIT{
      * @param none
      * @return the latest temperature
      */
-    float TemperatureSensing::getLatestTemperature(){
+    float& TemperatureSensing::SensorState::getLatestTemperature(){
 
-        xSemaphoreTake(reading_lock, 0xFFFF);
-        auto to_ret = temperatures[t_head_index > 0 ? t_head_index - 1 : 59];
-        xSemaphoreGive(reading_lock);
-
-        return to_ret;
+        return (*samples)[head_index > 0 ? head_index - 1 : 59]->second;
     }
 
     /**
@@ -78,19 +73,15 @@ namespace PIT{
      * @param time The time to calculate the temperature at.
      * @return The temperature at the specified time
      */
-    float TemperatureSensing::getLinRegTemperature(float time){ //time in seconds
+    float TemperatureSensing::SensorState::getLinRegTemperature(float&& time){ //time in seconds
     
-        xSemaphoreTake(reading_lock, 0xFFFF);
-        
-        uint64_t min_time = temp_times[t_head_index];
-        uint64_t max_time = temp_times[t_head_index > 0 ? t_head_index - 1 : 59];
+        uint64_t& min_time = (*samples)[head_index]->first;
+        uint64_t& max_time = (*samples)[head_index > 0 ? head_index - 1 : 59]->first;
 
-        float span = (float)(max_time-min_time)/1000.0;
-        float time_offset = (Utilities::getSystemUptime() - max_time) / 1000.0;
-        auto ret_val = (lrCoef[0]*(span+time_offset+time))+lrCoef[1];
+        float span = (max_time-min_time)/1000.0f;
+        float time_offset = (Utilities::getSystemUptime() - max_time) / 1000.0f;
+        auto ret_val = ((*lrCoef)[0]*(span+time_offset+time))+(*lrCoef)[1];
 
-        xSemaphoreGive(reading_lock);
-            
         return ret_val;
     }
 
@@ -117,14 +108,14 @@ namespace PIT{
         display.LCDPrint_P(Display::blank_line_str);
 
         //prepare the sensor(s) for reading        
-        sensors->getAddress(sensor_address, 0);
-        sensors->setResolution(sensor_address, 12);
+        sensors->getAddress(*sensor_address, 0);
+        sensors->setResolution(*sensor_address, 12);
         sensors->setWaitForConversion(false);
 
         //collect samples and fill the buffer
         for(int iqw = 0; iqw < 60; iqw++){
 
-            if(!sensors->isConnected(sensor_address)) //if the process fails then break out and reattempt
+            if(!sensors->isConnected(*sensor_address)) //if the process fails then break out and reattempt
                 return;
             
             lcd.setCursor(0, 1);
@@ -135,10 +126,10 @@ namespace PIT{
 
             delay(TEMP_INTEGRATION_DELAY);
 
-            float temperature = sensors->getTempF(sensor_address);
+            float temperature = sensors->getTempF(*sensor_address);
 
             temperatures[iqw] = temperature;
-            temp_times[iqw] = getSystemUptime();
+            temp_times[iqw] = Utilities::getSystemUptime();
         }
 
         sensors->requestTemperatures(); //prepare for the next reading
@@ -158,14 +149,14 @@ namespace PIT{
 
         if(t_ready){ //check to see if the temperature sensors have been initalized
         
-            if(sensors->isConnected(sensor_address)){ //if the sensors have been initalized check to see if they're still connected
+            if(sensors->isConnected(*sensor_address)){ //if the sensors have been initalized check to see if they're still connected
 
-                if ((uint32_t)((long)millis() - lastTempRequest) >= temp_integration_delay){ //has the minimum reading interval passed?
+                if ((uint32_t)((long)millis() - lastTempRequest) >= TEMP_INTEGRATION_DELAY){ //has the minimum reading interval passed?
                 
                     lrcoef_is_valid = false; //adding a new sensor reading will invalidate the coefficients
                     
-                    temperatures[t_head_index] = sensors.getTempF(sensor_address);
-                    temp_times[t_head_index] = getSystemUptime();
+                    temperatures[t_head_index] = sensors->getTempF(*sensor_address);
+                    temp_times[t_head_index] = Utilities::getSystemUptime();
 
                     sensors->requestTemperatures(); //prepare for the next round by beginning sensor integration
                     lastTempRequest = millis();
@@ -193,7 +184,7 @@ namespace PIT{
     }
 
     /**
-     * Do the stuff that needs to be done to calculate the linear regression coefficents.
+     * Do the things that need to be done to calculate the linear regression coefficents.
      */
     void TemperatureSensing::getTemperatureTrend()
     {
@@ -211,17 +202,73 @@ namespace PIT{
                 min_time = temp_times[i];
 
         //normalize the times
-        float sample_times[60];
+        float norm_sample_times[60];
         for(int i = 0; i < 60; i++)
-            sample_times[i] = (float)(temp_times[i] - min_time)*0.001 ;
+            norm_sample_times[i] = (temp_times[i] - min_time)*0.001F ;
         
         //perform the regression calculation
-        LinearRegression::simpLinReg(sample_times, (float*)temperatures, (float*)lrCoef, 60);
+        LinearRegression::linearRegression(norm_sample_times, (float*)temperatures, lrCoef, 60);
 
         lrcoef_is_valid = true;
     }
 
-    bool TemperatureSensing::isReady(){
-        return t_ready;
+    TemperatureSensing::SensorState::~SensorState(){
+        delete lrCoef;
+        delete samples;
+    }
+
+    TemperatureSensing::SensorState* TemperatureSensing::getState(){
+  
+        xSemaphoreTake(reading_lock, 0xFFFF);
+
+        auto state = new SensorState{t_ready, Utilities::getSystemUptime()};
+
+        if(t_ready)
+        {
+            state->head_index = t_head_index;
+            
+            state->lrCoef = new std::array<float, 2>;
+            *(state->lrCoef) = lrCoef;
+
+            state->samples = new std::array<std::pair<uint64_t, float>*, 60>;
+
+            for(int i = 0; i < state->samples->size(); i++){
+                (*(state->samples))[i] = new std::pair<uint64_t, float>(temp_times[i], temperatures[i]);
+            }
+        }
+
+        xSemaphoreGive(reading_lock);
+
+        return state;
+    }
+
+    //idk where else to put it
+    uint8_t TemperatureSensing::tcheck(Persistance::PITConfig * config, TemperatureSensing::SensorState * sensor_state)
+    {
+        if(sensor_state->is_ready && config->enable_temperature_control)
+        {
+            //if(!lrcoef_is_valid)
+            //    return t_chk_res; //just skip this round
+
+            if(config->cmp_options == 0) //less than
+            {
+                if(sensor_state->getLinRegTemperature(0) < config->setpoint_0)
+                    return true;
+                else
+                    return false; 
+            }
+            else
+                if(config->cmp_options == 1)
+                {
+                    if(sensor_state->getLinRegTemperature(0) > config->setpoint_0)
+                        return true;
+                    else
+                        return false;
+                }
+                else
+                    return false;
+        }
+        else
+            return false;
     }
 }

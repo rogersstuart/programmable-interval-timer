@@ -2,6 +2,13 @@
 #include "RotaryEncoder.h"
 #include "PIT.h"
 
+typedef void (*voidFuncPtrArg)(void*);
+
+extern "C"
+{
+	extern void __attachInterruptFunctionalArg(uint8_t pin, voidFuncPtrArg userFunc, void * arg, int intr_type, bool functional);
+}
+
 void IRAM_ATTR RotaryEncoder::readEncoder_ISR(){
     
 	portENTER_CRITICAL_ISR(&(mux));
@@ -26,6 +33,24 @@ RotaryEncoder::RotaryEncoder(uint8_t encoder_APin, uint8_t encoder_BPin, uint8_t
 
 	pinMode(encoderAPin, INPUT);
 	pinMode(encoderBPin, INPUT);
+
+	lastReadEncoder0Pos = 0;
+
+	__attachInterruptFunctionalArg (digitalPinToInterrupt(encoderAPin), [](void* capture){
+
+		auto scope = (RotaryEncoder*)capture;
+		scope->readEncoder_ISR();
+
+	}, this, CHANGE, true);
+
+	__attachInterruptFunctionalArg (digitalPinToInterrupt(encoderBPin), [](void* capture){
+
+		auto scope = (RotaryEncoder*)capture;
+		scope->readEncoder_ISR();
+
+	}, this, CHANGE, true);
+
+	isEnabled = true;
 }
 
 void RotaryEncoder::setBoundaries(int16_t minEncoderValue, int16_t maxEncoderValue, bool circleValues){
@@ -43,22 +68,11 @@ int16_t RotaryEncoder::readEncoder(){
 int16_t RotaryEncoder::encoderChanged(){
 
 	int16_t _encoder0Pos = readEncoder();
-	
 	int16_t encoder0Diff = _encoder0Pos - lastReadEncoder0Pos;
 
 	lastReadEncoder0Pos = _encoder0Pos;
+
 	return encoder0Diff;
-}
-
-void RotaryEncoder::setup(void (*ISR_callback)()){
-
-	attachInterrupt(digitalPinToInterrupt(encoderAPin), ISR_callback, CHANGE);
-	attachInterrupt(digitalPinToInterrupt(encoderBPin), ISR_callback, CHANGE);
-}
-
-void RotaryEncoder::begin(){
-
-	lastReadEncoder0Pos = 0;
 }
 
 void RotaryEncoder::reset(int16_t newValue_){
@@ -67,11 +81,4 @@ void RotaryEncoder::reset(int16_t newValue_){
 	encoder0Pos = newValue_;
 	if (encoder0Pos > _maxEncoderValue) encoder0Pos = _circleValues ? _minEncoderValue : _maxEncoderValue;
 	if (encoder0Pos < _minEncoderValue) encoder0Pos = _circleValues ? _maxEncoderValue : _minEncoderValue;	
-}
-
-void RotaryEncoder::enable(){
-	isEnabled = true;
-}
-void RotaryEncoder::disable(){
-	isEnabled = false;
 }

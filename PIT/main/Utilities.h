@@ -1,14 +1,14 @@
 #ifndef PIT_UTILITIES_H
 #define PIT_UTILITIES_H
 
+class String;
+
 namespace PIT{
 
     namespace{
 
-        extern class String;
-        typedef unsigned long long uint64_t;
-        typedef unsigned char uint8_t;
-
+        //typedef unsigned long long uint64_t;
+        //typedef unsigned char uint8_t;
     }
 
     class Utilities{
@@ -22,7 +22,6 @@ namespace PIT{
             static String generateTimeString(uint64_t total_seconds, uint8_t en_days, uint8_t zero_pad, uint8_t force_full_display);
             static uint8_t* timeBreakdown(uint64_t * seconds);
             static uint64_t getSystemUptime();
-
     };
 
 }

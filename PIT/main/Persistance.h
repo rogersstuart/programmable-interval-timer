@@ -31,7 +31,7 @@ namespace PIT{
             void readConfig();
             void writeConfig();
             
-            Persistance() = default;
+            Persistance();
 
             static Persistance& getInstance();
     };
