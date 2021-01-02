@@ -1,3 +1,4 @@
+#include "Arduino.h"
 #include "Utilities.h"
 #include "TemperatureSensing.h"
 #include "UI.h"
@@ -5,6 +6,12 @@
 #include "PIT.h"
 
 namespace PIT{
+
+    extern uint64_t uptime_at_cycle_start;
+    extern uint64_t uptime_at_pause;
+    extern RUN_MODE run_mode;
+    extern bool button_press_detected;
+    extern uint32_t press_detection_time;
 
     PRESS_TYPE UI::getButtonPress()
     {

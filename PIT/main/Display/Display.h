@@ -1,10 +1,13 @@
 #ifndef DISPLAY_MANAGER_H
 #define DISPLAY_MANAGER_H
 
-#include <LiquidCrystal_I2C.h>
-
 #define ENABLE_BLINK true
 #define DISABLE_BLINK false
+
+#include <Arduino.h>
+#include <LiquidCrystal_I2C.h>
+
+class LiquidCrystal_I2C;
 
 namespace PIT{
 
@@ -12,7 +15,7 @@ namespace PIT{
 
         private:
 
-            LiquidCrystal_I2C lcd{0x27, 16, 2};
+            LiquidCrystal_I2C * lcd;
             SemaphoreHandle_t * lcd_lock;
 
             Display();

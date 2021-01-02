@@ -16,11 +16,13 @@
 
 #include "TimerCore.h"
 
+#include <LiquidCrystal_I2C.h>
+
 #include <memory>
  
 namespace PIT{
 
-    OneWire oneWire(ONE_WIRE_PIN);
+    OneWire one_wire(ONE_WIRE_PIN);
     TemperatureSensing * t_sense = NULL;
 
     uint32_t press_detection_time = 0;
@@ -84,10 +86,6 @@ namespace PIT{
     void init()
     {
         Serial.begin(SERIAL_RATE);
-
-        pinMode(A0, INPUT_PULLUP);
-        pinMode(A2, INPUT_PULLUP);
-        pinMode(A3, INPUT_PULLUP);
         
         auto config = Persistance::getConfig(); //initalize magic static
         auto display = Display::getInstance(); //initalize magic static
@@ -103,7 +101,7 @@ namespace PIT{
 
         attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonPressDetected, FALLING);
 
-        t_sense = new TemperatureSensing(&oneWire);
+        t_sense = new TemperatureSensing(&one_wire);
 
         //create UI task
         xTaskCreate(UI_Task, "uiTask", 8000, NULL, 1, NULL);

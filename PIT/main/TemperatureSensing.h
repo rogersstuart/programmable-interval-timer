@@ -1,25 +1,16 @@
 #ifndef TEMPERATURE_SENSOR_H
 #define TEMPERATURE_SENSOR_H
 
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include "Persistance.h"
 #include <array>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #define TEMP_INTEGRATION_DELAY 750
 
-class OneWire;
-class DallasTemperature;
-class DeviceAddress;
-class TaskHandle_t;
-class SemaphoreHandle_t;
-
 namespace PIT{
-
-        namespace{
-
-                //typedef unsigned char uint8_t;
-                //typedef char int8_t;
-                //typedef unsigned short uint16_t;
-                //typedef unsigned long long uint64_t;
-        }
 
         class TemperatureSensing
         {
@@ -52,10 +43,6 @@ namespace PIT{
 
                         class SensorState{
 
-                                private:
-
-                                        SensorState() = default;
-
                                 public:
 
                                         bool is_ready = false;
@@ -69,9 +56,15 @@ namespace PIT{
 
                                         float& getLatestTemperature();
                                         float getLinRegTemperature(float&& time);
+
+                                private:
+
+                                        friend class TemperatureSensing;
+
+                                        SensorState(bool is_ready, uint64_t capture_time) : is_ready{is_ready}, capture_time{capture_time}{};
                         };
 
-                        TemperatureSensing(OneWire * oneWire);
+                        TemperatureSensing(::OneWire * oneWire);
                         ~TemperatureSensing();
 
                         void start();
@@ -79,7 +72,7 @@ namespace PIT{
 
                         SensorState* getState();
 
-                        static uint8_t TemperatureSensing::tcheck(Persistance::PITConfig * config, TemperatureSensing::SensorState * sensor_state);
+                        static uint8_t tcheck(Persistance::PITConfig * config, SensorState * sensor_state);
         };
 
 }

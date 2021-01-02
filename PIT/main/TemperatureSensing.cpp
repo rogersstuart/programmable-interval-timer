@@ -103,9 +103,9 @@ namespace PIT{
 
         lcd.setCursor(0, 0);
         lcd.print(F("Sample Fill"));
-        display.LCDPrint_P(Display::blank_line_str);
+        Display::LCDPrint_P(lcd, Display::blank_line_str);
         lcd.setCursor(0, 1);
-        display.LCDPrint_P(Display::blank_line_str);
+        Display::LCDPrint_P(lcd, Display::blank_line_str);
 
         //prepare the sensor(s) for reading        
         sensors->getAddress(*sensor_address, 0);

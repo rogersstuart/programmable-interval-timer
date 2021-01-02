@@ -9,11 +9,14 @@
 
 namespace PIT{
 
-    using PITConfig = Persistance::PITConfig;
+    extern uint64_t uptime_at_cycle_start;
+    extern uint64_t uptime_at_pause;
+    extern RUN_MODE run_mode;
+    extern bool button_press_detected;
+    extern uint32_t press_detection_time;
 
-    void UI::displayStatusLine(PITConfig& config, LiquidCrystal_I2C& lcd, TemperatureSensing * sensor){
+    void UI::displayStatusLine(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd, TemperatureSensing * sensor){
         
-        auto config = Persistance::getConfig();
         auto sensor_state = sensor->getState();
         
         lcd.noBlink();
@@ -115,7 +118,7 @@ namespace PIT{
         delete sensor_state;
     }
 
-    void UI::idleDisplay(PITConfig& config, LiquidCrystal_I2C& lcd, TemperatureSensing * sensor){
+    void UI::idleDisplay(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd, TemperatureSensing * sensor){
 
         int button_press = getButtonPress(); //check to see if we need to enter the menu system
 

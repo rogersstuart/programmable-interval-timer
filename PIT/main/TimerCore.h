@@ -3,8 +3,6 @@
 
 //shabby hack
 
-class TemperatureSensing;
-
 namespace{
     typedef char RUN_MODE;
 }
@@ -15,8 +13,8 @@ namespace PIT{
         private:
         public:
 
-            static void TimerCore::setMode(RUN_MODE new_mode);
-            static void TimerCore::processTimer();
+            static void setMode(RUN_MODE new_mode);
+            static void processTimer();
 
     };
 }

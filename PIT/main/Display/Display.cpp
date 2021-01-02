@@ -1,5 +1,5 @@
 #include <Arduino.h>
-
+#include <LiquidCrystal_I2C.h>
 #include "Display.h"
 #include "CustomChars.h"
 
@@ -7,23 +7,25 @@ namespace PIT{
 
     Display::Display(){
 
+        lcd = new LiquidCrystal_I2C(0x27, 16, 2);
+        
         vSemaphoreCreateBinary(*lcd_lock)
         xSemaphoreGive(*lcd_lock);
         
-        lcd.begin (16,2);
+        (*lcd).begin (16,2);
 
-        lcd.createChar(0, playChar);
-        lcd.createChar(1, pauseChar);
-        lcd.createChar(2, stopChar);
-        lcd.createChar(3, playTempEn);
-        lcd.createChar(4, runTmpTmr_norm);
-        lcd.createChar(5, tlvl);
-        lcd.createChar(6, tup);
-        lcd.createChar(7, tdown);
+        (*lcd).createChar(0, playChar);
+        (*lcd).createChar(1, pauseChar);
+        (*lcd).createChar(2, stopChar);
+        (*lcd).createChar(3, playTempEn);
+        (*lcd).createChar(4, runTmpTmr_norm);
+        (*lcd).createChar(5, tlvl);
+        (*lcd).createChar(6, tup);
+        (*lcd).createChar(7, tdown);
 
-        lcd.backlight();
+        (*lcd).backlight();
         
-        goHome(lcd);// go home
+        goHome((*lcd));// go home
     }
 
     inline void Display::goHome(LiquidCrystal_I2C& lcd, bool en_blink){
@@ -47,7 +49,7 @@ namespace PIT{
     LiquidCrystal_I2C& Display::checkOut(){
 
         xSemaphoreTake(*lcd_lock, 0xFFFF);
-        return lcd;
+        return *lcd;
     }
 
     void Display::checkIn(LiquidCrystal_I2C& lcd){

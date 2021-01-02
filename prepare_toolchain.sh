@@ -59,7 +59,6 @@ cd libraries
 git clone https://github.com/johnrickman/LiquidCrystal_I2C.git
 git clone https://github.com/milesburton/Arduino-Temperature-Control-Library.git
 git clone https://github.com/PaulStoffregen/OneWire.git
-git clone https://github.com/igorantolic/ai-esp32-rotary-encoder.git
 git clone https://github.com/ivanseidel/LinkedList.git
 
 cd $PIT_BASEDIR

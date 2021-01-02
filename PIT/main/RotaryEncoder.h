@@ -6,40 +6,48 @@
 #define ROTARTY_ENCODER_H
 
 #define ROTARY_ENCODER_A_PIN 32
-#define ROTARY_ENCODER_B_PIN 21
+#define ROTARY_ENCODER_B_PIN 35
 
-class RotaryEncoder{
-    private:
+#include <Arduino.h>
 
-        portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
-        volatile int16_t encoder0Pos = 0;
-        bool _circleValues = false;
-        bool isEnabled = true;
+namespace PIT{
 
-        uint8_t encoderAPin;
-        uint8_t encoderBPin;
-        uint8_t encoderSteps;
+    typedef void (*voidFuncPtrArg)(void*);
 
-        int16_t _minEncoderValue = -1 << 15;
-        int16_t _maxEncoderValue = 1 << 15;
+    class RotaryEncoder{
 
-        uint8_t old_AB;
-        int16_t lastReadEncoder0Pos;
+        private:
 
-        int8_t enc_states[16] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
-        void ISR_callback();
+            portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+            volatile int16_t encoder0Pos = 0;
+            bool _circleValues = false;
+            bool isEnabled = true;
 
-    public: 
+            uint8_t encoderAPin;
+            uint8_t encoderBPin;
+            uint8_t encoderSteps;
 
-        RotaryEncoder(uint8_t encoderAPin = ROTARY_ENCODER_A_PIN, uint8_t encoderBPin = ROTARY_ENCODER_B_PIN, uint8_t encoderSteps = 2);
+            int16_t _minEncoderValue = -1 << 15;
+            int16_t _maxEncoderValue = 1 << 15;
 
-        void setBoundaries(int16_t minValue = -100, int16_t maxValue = 100, bool circleValues = false);
-        void IRAM_ATTR readEncoder_ISR();
+            uint8_t old_AB;
+            int16_t lastReadEncoder0Pos;
 
-        void reset(int16_t newValue = 0);
+            int8_t enc_states[16] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+            void ISR_callback();
 
-        int16_t readEncoder();
-        int16_t encoderChanged();
-};
+        public: 
+
+            RotaryEncoder(uint8_t encoderAPin = ROTARY_ENCODER_A_PIN, uint8_t encoderBPin = ROTARY_ENCODER_B_PIN, uint8_t encoderSteps = 2);
+
+            void setBoundaries(int16_t minValue = -100, int16_t maxValue = 100, bool circleValues = false);
+            void IRAM_ATTR readEncoder_ISR();
+
+            void reset(int16_t newValue = 0);
+
+            int16_t readEncoder();
+            int16_t encoderChanged();
+    };
+}
 
 #endif //ROTARTY_ENCODER_H

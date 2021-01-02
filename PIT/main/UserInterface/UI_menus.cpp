@@ -1,18 +1,28 @@
+#include "PIT.h"
 #include <Arduino.h>
+#include "Persistance.h"
 #include "Display/Display.h"
 #include "UI.h"
 #include <LiquidCrystal_I2C.h>
-#include "Persistance.h"
+
 #include "Utilities.h"
-#include "PIT.h"
+
 #include "TimerCore.h"
 #include "RotaryEncoder.h"
 
+
+
 namespace PIT{
 
-    using PITConfig = Persistance::PITConfig;
+    extern uint64_t uptime_at_cycle_start;
+    extern uint64_t uptime_at_pause;
+    extern RUN_MODE run_mode;
+    extern bool button_press_detected;
+    extern uint32_t press_detection_time;
 
-    void UI::menuSelection(PRESS_TYPE button_press, PITConfig& config, LiquidCrystal_I2C& lcd){
+    //using PITConfig = PIT::Persistance::PITConfig;
+
+    void UI::menuSelection(PRESS_TYPE button_press, Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.setCursor(0, 1);
 
@@ -137,7 +147,7 @@ namespace PIT{
         }    
     }
 
-    void UI::selectOption(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::selectOption(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         int menu_position = 0;
 
@@ -189,7 +199,7 @@ namespace PIT{
         }
     }
 
-    void UI::selectOptionMenuItem1(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::selectOptionMenuItem1(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.noBlink();
         
@@ -205,7 +215,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::selectOptionMenuItem2(PITConfig& config, LiquidCrystal_I2C& lcd){    
+    void UI::selectOptionMenuItem2(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){    
 
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -221,7 +231,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::selecOptionMenuItem3(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::selecOptionMenuItem3(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -232,7 +242,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::setPulseWidthMenu(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::setPulseWidthMenu(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         uint8_t edit_selection_index = 0;
         uint8_t scale = 60;
@@ -343,7 +353,7 @@ namespace PIT{
         return;    
     }
 
-    void UI::setPeriodWidthMenu(PITConfig& config, LiquidCrystal_I2C& lcd){  //:)
+    void UI::setPeriodWidthMenu(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){  //:)
 
         uint8_t edit_selection_index = 0;
         uint8_t scale = 60;
@@ -455,7 +465,7 @@ namespace PIT{
         return;
     }
 
-    void UI::editMatchCondition(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::editMatchCondition(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         uint8_t selected_option = config.cmp_options;
 
@@ -502,7 +512,7 @@ namespace PIT{
         }
     }
 
-    void UI::temperatureOptionMenuItem1(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::temperatureOptionMenuItem1(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -518,7 +528,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::temperatureOptionMenuItem2(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::temperatureOptionMenuItem2(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -536,7 +546,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::temperatureOptionMenuItem3(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::temperatureOptionMenuItem3(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -552,7 +562,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::temperatureOptionMenuItem4(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::temperatureOptionMenuItem4(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.noBlink();
         lcd.setCursor(0, 1);
@@ -570,7 +580,7 @@ namespace PIT{
         lcd.blink();
     }
 
-    void UI::temperatureOptionsMenu(PITConfig& config, LiquidCrystal_I2C& lcd){
+    void UI::temperatureOptionsMenu(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         int menu_position = 0;
         temperatureOptionMenuItem1(config, lcd);
@@ -619,7 +629,7 @@ namespace PIT{
         }
     }
 
-    void UI::setTCEnable(PITConfig& config, LiquidCrystal_I2C& lcd)
+    void UI::setTCEnable(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd)
     {
         uint8_t selected_option = config.enable_temperature_control ? 0 : 1;
         
@@ -674,7 +684,7 @@ namespace PIT{
         }
     }
 
-    void UI::setBlockingEnable(PITConfig& config, LiquidCrystal_I2C& lcd)
+    void UI::setBlockingEnable(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd)
     {
         uint8_t selected_option = config.tmp_ctl_is_blocking;
         
@@ -729,7 +739,7 @@ namespace PIT{
         }
     }
 
-    void UI::editSetpoint0(PITConfig& config, LiquidCrystal_I2C& lcd)
+    void UI::editSetpoint0(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd)
     {
         float val_bak = config.setpoint_0;
         float pot_value = 255;
