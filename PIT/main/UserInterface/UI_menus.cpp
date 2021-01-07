@@ -20,13 +20,18 @@ namespace PIT{
     extern bool button_press_detected;
     extern uint32_t press_detection_time;
 
-    //using PITConfig = PIT::Persistance::PITConfig;
-
+    /**
+     * Menu entry.
+     * 
+     * The flow depends on the type of button press. If the button press was a short press then
+     * the "timer" state menu options are displayed. Start, stop, etc. A long button press opens
+     * the system menu options.
+     */
     void UI::menuSelection(PRESS_TYPE button_press, Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
         lcd.setCursor(0, 1);
 
-        if(button_press == 0)
+        if(button_press == SHORT_PRESS)
         {
             if(run_mode == 2)
                 Display::LCDPrint_P(lcd, Display::stop_pause_str);
@@ -37,15 +42,13 @@ namespace PIT{
                     if(run_mode == 0)
                         Display::LCDPrint_P(lcd, Display::run_str);                           
 
-            uint16_t pot_value = 0; //encoder default positon
+            uint16_t encoder_value = 0; //encoder default positon
 
             //reset the state of the encoder tracker
             encoder.setBoundaries(0, 1, true);
             encoder.reset();
-
-            //while(getButtonPress() != )
-
-            switch(pot_value)
+      
+            switch(encoder_value)
             {
                 case 0: switch(run_mode){
 
@@ -69,12 +72,12 @@ namespace PIT{
             lcd.blink();
             
             uint32_t timer = millis();
+            auto last_encoder_value = encoder_value;
             while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION){
 
-                //pot_value = getscaledPotValue(2);
-                pot_value = encoder.readEncoder();
+                encoder_value = encoder.readEncoder();
 
-                switch(pot_value){
+                switch(encoder_value){
 
                     case 0: switch(run_mode)
                             {
@@ -92,8 +95,6 @@ namespace PIT{
                             }
                             break;
                 }
-
-                //delay(100);
 
                 switch(getButtonPress())
                 {
@@ -118,7 +119,7 @@ namespace PIT{
                                     if(run_mode == 0)
                                         Display::LCDPrint_P(lcd, Display::run_str);
                             
-                            switch(pot_value)
+                            switch(encoder_value)
                             {
                                 case 0: switch(run_mode)
                                         {
@@ -154,11 +155,11 @@ namespace PIT{
         switch(menu_position){
 
             case 0: selectOptionMenuItem1(config, lcd);
-            break;
+                    break;
             case 1: selectOptionMenuItem2(config, lcd);
-            break;
+                    break;
             case 2: selecOptionMenuItem3(config, lcd);
-            break;
+                    break;
         }
 
         uint32_t timer = millis();
@@ -166,6 +167,7 @@ namespace PIT{
 
             switch(getButtonPress())
             {
+                
                 case 0:
 
                     if(++menu_position == 3)
@@ -174,10 +176,11 @@ namespace PIT{
                     switch(menu_position){
 
                         case 0: selectOptionMenuItem1(config, lcd);
-                        break;
+                                break;
                         case 1: selectOptionMenuItem2(config, lcd);
-                        break;
+                                break;
                         case 2: selecOptionMenuItem3(config, lcd);
+                                break;
                     }
 
                     break;
@@ -187,11 +190,11 @@ namespace PIT{
                     switch(menu_position){
 
                         case 0: setPulseWidthMenu(config, lcd);
-                        break;
+                                break;
                         case 1: setPeriodWidthMenu(config, lcd);
-                        break;
+                                break;
                         case 2: temperatureOptionsMenu(config, lcd);
-                        break;
+                                break;
                     }
                 
                     return;
@@ -265,7 +268,9 @@ namespace PIT{
         lcd.blink();
 
         uint32_t timer = millis();
-        uint16_t pot_value = getscaledPotValue(scale);
+        uint16_t pot_value = 0;//getscaledPotValue(scale);
+        encoder.setBoundaries(0, 60, true);
+        encoder.reset();
 
         if(pot_value < 10)
             lcd.print('0');
@@ -276,7 +281,7 @@ namespace PIT{
 
         while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
         {
-            uint16_t new_pot_value = getscaledPotValue(scale);
+            uint16_t new_pot_value = encoder.readEncoder();//getscaledPotValue(scale);
 
             switch(edit_selection_index)
             {
@@ -380,7 +385,9 @@ namespace PIT{
         lcd.blink();
 
         uint32_t timer = millis();
-        uint16_t pot_value = getscaledPotValue(scale);
+        uint16_t pot_value = 0;//getscaledPotValue(scale);
+        encoder.setBoundaries(0, 60, true);
+        encoder.reset();
 
         if(pot_value < 10)
         lcd.print('0');
@@ -391,7 +398,7 @@ namespace PIT{
 
         while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
         {
-            uint16_t new_pot_value = getscaledPotValue(scale);
+            uint16_t new_pot_value = encoder.readEncoder();//getscaledPotValue(scale);
 
             switch(edit_selection_index)
             {
@@ -460,6 +467,8 @@ namespace PIT{
 
                         return;
             }
+
+            vTaskDelay(1000/30);
         }
 
         return;
@@ -739,19 +748,25 @@ namespace PIT{
         }
     }
 
+    /**
+     * This is where the temperature setpoint gets edited.
+     */
     void UI::editSetpoint0(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd)
     {
         float val_bak = config.setpoint_0;
         float pot_value = 255;
         
+        //print the setpoint menu text
         temperatureOptionMenuItem2(config, lcd);
 
         lcd.setCursor(9, 1);
 
+        encoder.setBoundaries();
+
         uint32_t timer = millis();
         while((uint32_t)((long)millis()-timer) < NUISANCE_PRESS_DURATION)
         {
-            float new_pot_value  = (float)getscaledPotValue(1890)/10-4;
+            float new_pot_value  = 0;//(float)getscaledPotValue(1890)/10-4;
 
             if(new_pot_value != pot_value)
             {

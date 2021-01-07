@@ -56,7 +56,9 @@ namespace PIT{
         {
             EEPROM.write(0, BRINGUP_CODE >> 8);
             EEPROM.write(1, BRINGUP_CODE & 0xFF);
-        }   
+        }
+
+        EEPROM.commit();  
     }
 
     Persistance& Persistance::getInstance(){

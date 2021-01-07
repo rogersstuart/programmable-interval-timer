@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "Display/Display.h"
 #include "Utilities.h"
 #include "TemperatureSensing.h"
@@ -6,6 +7,9 @@
 
 #include "LiquidCrystal_I2C.h"
 #include <memory>
+#include <vector>
+
+#define ENABLE_SAMPLE_FILL_MESSAGE true
 
 namespace PIT{
 
@@ -15,12 +19,14 @@ namespace PIT{
     extern bool button_press_detected;
     extern uint32_t press_detection_time;
 
+    /**
+     * The status line is the first line of the display.
+     */
     void UI::displayStatusLine(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd, TemperatureSensing * sensor){
         
-        auto sensor_state = sensor->getState();
+        std::unique_ptr<TemperatureSensing::SensorState> sensor_state(sensor->getState());
         
         lcd.noBlink();
-    
         lcd.setCursor(0, 0);
      
         uint64_t current_time = Utilities::getSystemUptime();
@@ -30,13 +36,13 @@ namespace PIT{
 
         if(run_mode == 2)
         {
-            if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && sensor_state->is_ready))
+            if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && (sensor_state->is_ready || ENABLE_SAMPLE_FILL_MESSAGE)))
                 pw_pe += Utilities::generateTimeString(cycle_difference, true, false, false);
         }
         else
             if(run_mode == 0)
             {
-                if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && sensor_state->is_ready))
+                if(!(config.enable_temperature_control && config.tmp_ctl_is_blocking && (sensor_state->is_ready || ENABLE_SAMPLE_FILL_MESSAGE)))
                     pw_pe += String("0");
             }
             else
@@ -114,13 +120,11 @@ namespace PIT{
                     lcd.write((uint8_t)0);
             break;
         } 
-
-        delete sensor_state;
     }
 
     void UI::idleDisplay(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd, TemperatureSensing * sensor){
 
-        int button_press = getButtonPress(); //check to see if we need to enter the menu system
+        PRESS_TYPE button_press = getButtonPress(); //check to see if we need to enter the menu system
 
         if(button_press == -1) //if not then update the idle display
         {
@@ -128,11 +132,15 @@ namespace PIT{
         
             lcd.setCursor(0, 1);
             
-            if(config.enable_temperature_control && config.tmp_ctl_is_blocking){
+            if(config.enable_temperature_control && config.tmp_ctl_is_blocking && sensor_state->is_ready){
 
                 lcd.setCursor(0, 1);
                 
                 float range = config.setpoint_0 - sensor_state->getLinRegTemperature(0);
+
+                //auto f = *(sensor_state->lrCoef);
+                //Serial.println((float)(f[0]));
+                //Serial.println((float)(f[1]));
 
                 lcd.print(range, 2);
                 lcd.write((uint8_t)0b11011111);

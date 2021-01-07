@@ -7,10 +7,15 @@ namespace PIT{
 
     void UI::showBootMessage(LiquidCrystal_I2C& lcd, int delay_ms){
     
+        lcd.backlight();
+
+        lcd.setCursor(0, 0);
         lcd.print(Display::version_str);
         lcd.setCursor(0, 1);
         lcd.print(Display::group_name_str);
 
         delay(delay_ms);
+
+        lcd.clear();
     }
 }

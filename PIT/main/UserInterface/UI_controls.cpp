@@ -12,30 +12,33 @@ namespace PIT{
     extern RUN_MODE run_mode;
     extern bool button_press_detected;
     extern uint32_t press_detection_time;
+    extern uint32_t button_block_timer;
 
     PRESS_TYPE UI::getButtonPress()
     {
-        int8_t ret_val = -1;
+        PRESS_TYPE ret_val = -1;
 
         if(button_press_detected)
         {
             uint32_t press_detection_time_cpy = press_detection_time;
             
-            delay(BUTTON_READ_BLOCK_DURATION);
+            //vTaskDelay(BUTTON_READ_BLOCK_DURATION);
 
             while(!digitalRead(BUTTON_PIN))
-                if((uint32_t)((long)millis()-press_detection_time_cpy) >= LONG_PRESS_DURATION)
+                if((uint32_t)((int32_t)millis()-press_detection_time_cpy) >= LONG_PRESS_DURATION)
                     break;
 
-            if((uint32_t)((long)millis()-press_detection_time_cpy) >= LONG_PRESS_DURATION)
+            if((uint32_t)((int32_t)millis()-press_detection_time_cpy) >= LONG_PRESS_DURATION)
                 ret_val = 1;
             else
-                if((uint32_t)((long)millis()-press_detection_time_cpy) >= SHORT_PRESS_DURATION)
+                if((uint32_t)((int32_t)millis()-press_detection_time_cpy) >= SHORT_PRESS_DURATION)
                     ret_val = 0;
 
-            delay(BUTTON_READ_BLOCK_DURATION);
+            //vTaskDelay(BUTTON_READ_BLOCK_DURATION);
 
+            button_block_timer = millis();
             button_press_detected = false;
+            
         }
 
         return ret_val;

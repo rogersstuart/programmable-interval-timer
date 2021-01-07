@@ -6,10 +6,12 @@
 #endif //ARDUINO
 
 #define INCLUDE_vTaskDelete 1
+#define configSUPPORT_DYNAMIC_ALLOCATION 1
+#define INCLUDE_vTaskSuspend 1
 
-#define SERIAL_RATE 250000U
+#define SERIAL_RATE 115200U
 
-#define BUTTON_PIN 2
+#define BUTTON_PIN 16
 #define RELAY_PIN 4
 #define ONE_WIRE_PIN 15
 

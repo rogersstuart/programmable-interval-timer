@@ -23,7 +23,7 @@ namespace PIT{
     namespace{
 
         typedef char RUN_MODE; //maybe enum later
-        typedef char PRESS_TYPE;
+        typedef signed char PRESS_TYPE;
         
     }
 

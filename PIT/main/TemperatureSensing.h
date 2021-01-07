@@ -4,7 +4,9 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include "Persistance.h"
+#include <vector>
 #include <array>
+#include <memory>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -17,13 +19,13 @@ namespace PIT{
                 private:
 
                         OneWire * one_wire;
-                        DallasTemperature * sensors;
-                        DeviceAddress * sensor_address;
+                        DallasTemperature sensors;
+                        DeviceAddress sensor_address;
 
-                        TaskHandle_t * task_handle;
-                        SemaphoreHandle_t * reading_lock;
+                        TaskHandle_t task_handle;
+                        SemaphoreHandle_t reading_lock;
 
-                        std::array<float, 2> lrCoef;
+                        std::vector<float> lrCoef = std::vector<float>(2);
                         uint8_t lrcoef_is_valid = false;
 
                         unsigned long lastTempRequest = 0; //last temperature request timestamp
@@ -49,8 +51,8 @@ namespace PIT{
                                         uint64_t capture_time;
                                         
                                         int head_index; //super lazy
-                                        std::array<std::pair<uint64_t, float>*, 60> * samples = NULL;
-                                        std::array<float, 2> * lrCoef = NULL;
+                                        std::vector<std::pair<uint64_t, float>> * samples = NULL;
+                                        std::vector<float> * lrCoef = NULL;
 
                                         ~SensorState();
 

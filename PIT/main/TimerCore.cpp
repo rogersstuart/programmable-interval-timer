@@ -19,7 +19,7 @@ namespace PIT{
      */
     void TimerCore::processTimer(){
 
-        auto config = Persistance::getConfig();
+        auto config = Persistance::getConfig(); //isolated
         std::unique_ptr<TemperatureSensing::SensorState> sensor_state(t_sense->getState());
         
         if(run_mode == THERMOSTAT_MODE){
@@ -70,9 +70,6 @@ namespace PIT{
      */
     void TimerCore::setMode(RUN_MODE new_mode)
     {
-        if(new_mode == 2) //if the new run mode is temperature control then start the temperature sensor object
-            t_sense->start();
-
         if(run_mode == new_mode)
             return;
 

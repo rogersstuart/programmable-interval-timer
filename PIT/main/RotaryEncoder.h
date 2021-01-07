@@ -6,7 +6,7 @@
 #define ROTARTY_ENCODER_H
 
 #define ROTARY_ENCODER_A_PIN 32
-#define ROTARY_ENCODER_B_PIN 35
+#define ROTARY_ENCODER_B_PIN 33
 
 #include <Arduino.h>
 
@@ -19,7 +19,7 @@ namespace PIT{
         private:
 
             portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
-            volatile int16_t encoder0Pos = 0;
+            volatile double encoder0Pos = 0;
             bool _circleValues = false;
             bool isEnabled = true;
 
@@ -38,7 +38,7 @@ namespace PIT{
 
         public: 
 
-            RotaryEncoder(uint8_t encoderAPin = ROTARY_ENCODER_A_PIN, uint8_t encoderBPin = ROTARY_ENCODER_B_PIN, uint8_t encoderSteps = 2);
+            RotaryEncoder(uint8_t encoderAPin = ROTARY_ENCODER_A_PIN, uint8_t encoderBPin = ROTARY_ENCODER_B_PIN, uint8_t encoderSteps = 4);
 
             void setBoundaries(int16_t minValue = -100, int16_t maxValue = 100, bool circleValues = false);
             void IRAM_ATTR readEncoder_ISR();

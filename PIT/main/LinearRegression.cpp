@@ -3,7 +3,7 @@
 
 namespace PIT{
 
-    void LinearRegression::linearRegression(float* x, float* y, std::array<float, 2> lrCoef, uint8_t num){
+    void LinearRegression::linearRegression(float* x, float* y, std::vector<float>& lrCoef, uint8_t num){
 
         // pass x and y arrays (pointers), lrCoef pointer, and n.  The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1]. n is length of the x and y arrays.
 
@@ -14,8 +14,7 @@ namespace PIT{
         float xsqbar=0.0;
 
         // calculations required for linear regression
-        for (int i=0; i<num; i++)
-        {
+        for (int i=0; i<num; i++){
             xbar=xbar+x[i];
             ybar=ybar+y[i];
             xybar=xybar+x[i]*y[i];

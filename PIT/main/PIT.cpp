@@ -22,7 +22,7 @@
  
 namespace PIT{
 
-    OneWire one_wire(ONE_WIRE_PIN);
+    OneWire one_wire;
     TemperatureSensing * t_sense = NULL;
 
     uint32_t press_detection_time = 0;
@@ -40,30 +40,47 @@ namespace PIT{
     uint8_t force_extern = 0;
     uint8_t t_chk_res = false;
 
+    portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
     void Timer_Task(void * pv_param){
 
         while(true){
+
+            //Serial.println("here1");
+            
+            uint32_t tmr = millis();
             
             TimerCore::processTimer();
-            vTaskDelay(10);
+            
+            while((uint32_t)((int32_t)millis()-tmr) < (1000/4))
+                vTaskDelay(1);
+
+                //1000/4/portTICK_PERIOD_MS
         }
     }
+
+    int ii = 0;
+    int kk = 0;
 
     void UI_Task(void * pv_param){
 
         auto display = Display::getInstance();
         auto config = Persistance::getConfig();
         
+        
         while(true){
 
-            auto lcd = display.checkOut();
+            uint32_t tmr = millis();
             
+            auto lcd = display.checkOut();
+
             UI::displayStatusLine(config, lcd, t_sense);
             UI::idleDisplay(config, lcd, t_sense);
 
             display.checkIn(lcd);
 
-            vTaskDelay(20); //give other tasks a chance to do something
+            while((uint32_t)((int32_t)millis()-tmr) < (1000/30))
+                vTaskDelay(1); //give other tasks a chance to do something
         }
     }
 
@@ -72,9 +89,14 @@ namespace PIT{
      */
     void buttonPressDetected(){
 
-        button_block_timer = millis();
-        press_detection_time = millis();
-        button_press_detected = true;
+        if((uint32_t)((int32_t)millis()-button_block_timer) >= BUTTON_READ_BLOCK_DURATION){
+            button_block_timer = millis();
+            press_detection_time = millis();
+            button_press_detected = true;
+        }
+        else
+            button_block_timer = millis();
+        
     }
 
     /**
@@ -85,7 +107,15 @@ namespace PIT{
      */
     void init()
     {
+        pinMode(BUTTON_PIN, INPUT_PULLUP);
+        pinMode(RELAY_PIN, OUTPUT);
+
+        digitalWrite(RELAY_PIN, LOW);
+
+        
         Serial.begin(SERIAL_RATE);
+
+        EEPROM.begin(1024);
         
         auto config = Persistance::getConfig(); //initalize magic static
         auto display = Display::getInstance(); //initalize magic static
@@ -94,6 +124,14 @@ namespace PIT{
         UI::showBootMessage(lcd); //default delay
         display.checkIn(lcd);
 
+        pinMode(ONE_WIRE_PIN, OUTPUT);
+        digitalWrite(ONE_WIRE_PIN, LOW);
+        delay(100);
+        one_wire.begin(ONE_WIRE_PIN);
+
+        t_sense = new TemperatureSensing(&one_wire);
+        t_sense->start();
+
         if(Persistance::getConfig().run_on_power_up)
             TimerCore::setMode(2);
         else
@@ -101,13 +139,12 @@ namespace PIT{
 
         attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonPressDetected, FALLING);
 
-        t_sense = new TemperatureSensing(&one_wire);
-
         //create UI task
-        xTaskCreate(UI_Task, "uiTask", 8000, NULL, 1, NULL);
+        xTaskCreatePinnedToCore(UI_Task, "uiTask", 8000, NULL, 1, NULL, 0);
 
         //create timer task
-        xTaskCreate(Timer_Task, "timerTask", 8000, NULL, 1, NULL);
+        xTaskCreatePinnedToCore(Timer_Task, "timerTask", 8000, NULL, 10, NULL, 0);
+
     }
 }
 

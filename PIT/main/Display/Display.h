@@ -4,10 +4,11 @@
 #define ENABLE_BLINK true
 #define DISABLE_BLINK false
 
+#define DISPLAY_SDA_PIN 21
+#define DISPLAY_SCL_PIN 22
+
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-
-class LiquidCrystal_I2C;
 
 namespace PIT{
 
@@ -15,8 +16,8 @@ namespace PIT{
 
         private:
 
-            LiquidCrystal_I2C * lcd;
-            SemaphoreHandle_t * lcd_lock;
+            LiquidCrystal_I2C lcd{0x27, 40, 2};
+            SemaphoreHandle_t lcd_lock;
 
             Display();
 
@@ -29,11 +30,11 @@ namespace PIT{
             inline static const char match_less_set_str[] PROGMEM = "Match t < set   ";
             inline static const char blank_line_str[] PROGMEM = "                ";
 
-            inline static const char version_str[] PROGMEM = "PIT 2.0.0";
-            inline static const char group_name_str[] PROGMEM = "ATOMIC FRENZY 2020";
+            inline static const char version_str[] PROGMEM = "PIT_32 1.2.0";
+            inline static const char group_name_str[] PROGMEM = "AtomicFRENZY 2021";
 
-            static inline void LCDPrint_P(LiquidCrystal_I2C& lcd, const char str[]);
-            static inline void goHome(LiquidCrystal_I2C& lcd, bool en_blink = true);
+            static void LCDPrint_P(LiquidCrystal_I2C& lcd, const char str[]);
+            static void goHome(LiquidCrystal_I2C& lcd, bool en_blink = true);
 
             LiquidCrystal_I2C& checkOut();
             void checkIn(LiquidCrystal_I2C& lcd);
