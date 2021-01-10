@@ -30,8 +30,8 @@ namespace PIT{
             inline static const char match_less_set_str[] PROGMEM = "Match t < set   ";
             inline static const char blank_line_str[] PROGMEM = "                ";
 
-            inline static const char version_str[] PROGMEM = "PIT_32 1.2.0";
-            inline static const char group_name_str[] PROGMEM = "AtomicFRENZY 2021";
+            inline static const char version_str[] PROGMEM = "  PIT_32 1.2.0";
+            //inline static const char group_name_str[] PROGMEM = "AtomicFRENZY";
 
             static void LCDPrint_P(LiquidCrystal_I2C& lcd, const char str[]);
             static void goHome(LiquidCrystal_I2C& lcd, bool en_blink = true);

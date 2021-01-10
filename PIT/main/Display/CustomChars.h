@@ -8,6 +8,10 @@
 #ifndef CUSTOMCHARS_H_
 #define CUSTOMCHARS_H_
 
+namespace PIT{
+
+    
+
 PROGMEM const char tdown[8] = {
     0b00000,
     0b01110,
@@ -106,5 +110,41 @@ PROGMEM const char stopChar[8] = {
     0b00000,
     0b00000
 };
+
+PROGMEM const char sampleFillChar[8] = {
+    0b11000,
+    0b10000,
+    0b11000,
+    0b01011,
+    0b11010,
+    0b00011,
+    0b00010,
+    0b00010
+};
+
+/*
+enum CUSTOM_CHARS {
+    
+    TEMPERATURE_DOWNTREND,
+    TEMPERATURE_UPTREND,
+    TEMPERATURE_STEADY,
+    TEMPERATURE_MODE,
+    TEMPERATURE_TIMER_MODE,
+    TIMER_RUN,
+    TEMP_MODE_RUN,
+    PAUSED,
+    STOPPED,
+    SAMPLE_FILL
+};
+
+PROGMEM const char * getCustomChar(CUSTOM_CHARS char_type){
+    switch(char_type){
+        case 0: return tdown;
+
+    }
+}
+*/
+
+}
 
 #endif /* CUSTOMCHARS_H_ */

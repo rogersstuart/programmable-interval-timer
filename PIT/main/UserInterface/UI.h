@@ -58,7 +58,7 @@ namespace PIT{
             static void editSetpoint0(Persistance::PITConfig& config, LiquidCrystal_I2C& lcd);
 
             //UI_other.cpp
-            static void showBootMessage(LiquidCrystal_I2C& lcd, int delay_ms = 2000);
+            static void showBootMessage(LiquidCrystal_I2C& lcd, int delay_ms = 500);
 
             //UI_button.cpp
             static PRESS_TYPE getButtonPress();

@@ -1,4 +1,5 @@
 #include "PIT.h"
+#include "Beep.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include <EEPROM.h>
@@ -15,10 +16,10 @@
 #include "TemperatureSensing.h"
 
 #include "TimerCore.h"
-
 #include <LiquidCrystal_I2C.h>
-
 #include <memory>
+#include <random>
+
  
 namespace PIT{
 
@@ -46,16 +47,12 @@ namespace PIT{
 
         while(true){
 
-            //Serial.println("here1");
-            
             uint32_t tmr = millis();
             
             TimerCore::processTimer();
             
-            while((uint32_t)((int32_t)millis()-tmr) < (1000/4))
+            while((uint32_t)((int32_t)millis()-tmr) < (1000/10))
                 vTaskDelay(1);
-
-                //1000/4/portTICK_PERIOD_MS
         }
     }
 
@@ -109,9 +106,12 @@ namespace PIT{
     {
         pinMode(BUTTON_PIN, INPUT_PULLUP);
         pinMode(RELAY_PIN, OUTPUT);
+        pinMode(BEEP_PIN, OUTPUT);
 
         digitalWrite(RELAY_PIN, LOW);
 
+        Beep::beep(10000);
+        Beep::beep(10000);
         
         Serial.begin(SERIAL_RATE);
 
@@ -121,6 +121,7 @@ namespace PIT{
         auto display = Display::getInstance(); //initalize magic static
 
         auto lcd = display.checkOut();
+
         UI::showBootMessage(lcd); //default delay
         display.checkIn(lcd);
 

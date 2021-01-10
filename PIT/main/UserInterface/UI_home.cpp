@@ -138,10 +138,6 @@ namespace PIT{
                 
                 float range = config.setpoint_0 - sensor_state->getLinRegTemperature(0);
 
-                //auto f = *(sensor_state->lrCoef);
-                //Serial.println((float)(f[0]));
-                //Serial.println((float)(f[1]));
-
                 lcd.print(range, 2);
                 lcd.write((uint8_t)0b11011111);
                 lcd.print("F ");

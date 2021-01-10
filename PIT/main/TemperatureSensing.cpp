@@ -189,9 +189,7 @@ namespace PIT{
                     
                     temperatures[t_head_index] = sensors.getTempF(sensor_address);
                     temp_times[t_head_index] = Utilities::getSystemUptime();
-
-                    Serial.println(temperatures[t_head_index]);
-
+                    
                     sensors.requestTemperatures(); //prepare for the next round by beginning sensor integration
                     portEXIT_CRITICAL(&mux);
 
@@ -213,8 +211,6 @@ namespace PIT{
         else{ //the temperature sensor(s) needs to be initalized
 
             sensors.begin();
-
-            Serial.println(sensors.getDeviceCount(), DEC);
 
             if(sensors.getDeviceCount() > 0) //check to see if any sensors are connected
                 sampleFill(); //if they are then fill the sample buffer

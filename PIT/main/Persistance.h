@@ -25,6 +25,8 @@ namespace PIT{
 
         private:
 
+            SemaphoreHandle_t cfg_lock;
+            
             PITConfig config {};
             bool init_complete;
 

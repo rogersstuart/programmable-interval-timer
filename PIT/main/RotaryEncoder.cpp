@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "RotaryEncoder.h"
 #include "PIT.h"
+#include "Beep.h"
 
 namespace PIT{
 
@@ -17,7 +18,7 @@ namespace PIT{
 			uint8_t ENC_PORT = ((digitalRead(encoderBPin)) ? (1 << 1) : 0) | ((digitalRead(encoderAPin)) ? (1 << 0) : 0);	
 			old_AB |= ( ENC_PORT & 0x03 );  //add current state
 			encoder0Pos += ( enc_states[( old_AB & 0x0f )])*0.25;	
-			
+
 			if ((int16_t)encoder0Pos > _maxEncoderValue)
 				encoder0Pos = _circleValues ? _minEncoderValue : _maxEncoderValue;
 			else
@@ -69,7 +70,7 @@ namespace PIT{
 		else
 			if(val2 > _maxEncoderValue)
 				val2 = _minEncoderValue;
-				
+
 		return val2;
 	}
 
@@ -81,7 +82,6 @@ namespace PIT{
 		if (encoder0Pos > _maxEncoderValue) encoder0Pos = _circleValues ? _minEncoderValue : _maxEncoderValue;
 		if (encoder0Pos < _minEncoderValue) encoder0Pos = _circleValues ? _maxEncoderValue : _minEncoderValue;	
 	}
-
 }
 
 

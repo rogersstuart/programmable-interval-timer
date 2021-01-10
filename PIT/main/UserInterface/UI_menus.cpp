@@ -10,7 +10,7 @@
 #include "TimerCore.h"
 #include "RotaryEncoder.h"
 
-
+#include "Beep.h"
 
 namespace PIT{
 
@@ -29,6 +29,8 @@ namespace PIT{
      */
     void UI::menuSelection(PRESS_TYPE button_press, Persistance::PITConfig& config, LiquidCrystal_I2C& lcd){
 
+        Beep::beep(5000);
+        
         lcd.setCursor(0, 1);
 
         if(button_press == SHORT_PRESS)
@@ -124,7 +126,7 @@ namespace PIT{
                                 case 0: switch(run_mode)
                                         {
                                             case 2: TimerCore::setMode(0); break;
-                                            case 1: TimerCore::setMode(0);
+                                            case 1: TimerCore::setMode(0); break;
                                             case 0: TimerCore::setMode(2); break;
                                         }
                                         break;
@@ -142,7 +144,7 @@ namespace PIT{
             }
         }
         else
-        if(button_press == 1)
+        if(button_press == 1) //long press
         {
             selectOption(config, lcd);
         }    

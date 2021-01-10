@@ -14,6 +14,7 @@
 #define BUTTON_PIN 16
 #define RELAY_PIN 4
 #define ONE_WIRE_PIN 15
+#define BEEP_PIN 27
 
 #define BRINGUP_CODE 0xCFB3
 
