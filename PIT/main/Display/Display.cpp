@@ -6,13 +6,29 @@
 
 #include <freertos/task.h>
 
+#include "FrequencyGenerator.h"
+
 namespace PIT{
 
     Display::Display(){
 
+        //start the contrast adjustment f_gen
+        static fgen_info_t       info;
+        static fgen_resources_t* fgen;
+
+        fgen_info( 20000.0, 
+                0.8, 
+                &info);
+
+        fgen = fgen_alloc(&info, (gpio_num_t)12);
+        printf("Channel: %02d \tGPIO: %02d\tFreq.: %0.2f Hz\tBlocks: %d\n", 
+                fgen->channel, fgen->gpio_num, fgen->info.freq, fgen->info.mem_blocks);
+        fgen_start(fgen);
+
+        /////
+        
         Wire.begin(DISPLAY_SDA_PIN, DISPLAY_SCL_PIN, 1000000);
         lcd.begin(16,2);
-        
 
         lcd.createChar(0, playChar);
         lcd.createChar(1, pauseChar);

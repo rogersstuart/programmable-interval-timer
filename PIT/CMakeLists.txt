@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(COMPILER_VERSION_FLAG "-std=c++17")
+set(COMPILER_VERSION_FLAG "-std=c++2a")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILER_VERSION_FLAG} -w")
 add_definitions(-D ARDUINO=101)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

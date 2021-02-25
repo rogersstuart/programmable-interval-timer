@@ -27,4 +27,6 @@
 
 typedef char RUN_MODE;
 
+#define FREQ_ADJ_PIN 12
+
 #endif //PIT_H
