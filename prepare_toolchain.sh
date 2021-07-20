@@ -48,7 +48,11 @@ chmod 775 ./export.sh
 cd $PIT_BASEDIR/PIT
 mkdir -p components
 cd components
-git clone -b idf-release/v4.0 https://github.com/espressif/arduino-esp32.git arduino 
+
+#branch was removed by espressif
+#git clone -b idf-release/v4.0 https://github.com/espressif/arduino-esp32.git arduino 
+git clone -b idf-release/v4.0 https://github.com/marcovannoord/arduino-esp32.git arduino
+
 cd arduino 
 git submodule update --init --recursive 
 
